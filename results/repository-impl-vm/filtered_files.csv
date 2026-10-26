@@ -1,0 +1,4 @@
+Layer,File,Path
+Repository,UserRepositoryImpl.kt,app/src/main/java/com/demo/UserRepositoryImpl.kt
+Service,UserService.kt,app/src/main/java/com/demo/UserService.kt
+ViewModel,UserViewModel.kt,app/src/main/java/com/demo/UserViewModel.kt

@@ -1,4 +1,4 @@
 package com.shop.data.repo
 
-// suffix "Impl" alone is not accepted (only RepoImpl) -> must never appear
+// suffix "RepositoryImpl" is accepted as Repository; this class has no calls, so it adds no edges
 class ProductRepositoryImpl

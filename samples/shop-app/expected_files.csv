@@ -10,6 +10,7 @@ Repository,PaymentRepo.kt
 Repository,PaymentRepoImpl.kt
 Repository,ProductRepo.kt
 Repository,ProductRepoImpl.kt
+Repository,ProductRepositoryImpl.kt
 Repository,ProfileRepository.kt
 Service,CartService.kt
 Service,PaymentService.kt

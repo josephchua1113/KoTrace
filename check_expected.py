@@ -11,7 +11,7 @@ import sys
 from openpyxl import load_workbook
 
 # files that exist in the sample but must never appear anywhere in the report
-FORBIDDEN = ["ProductRepoHelper", "ProductRepositoryImpl", "Legacyservice",
+FORBIDDEN = ["ProductRepoHelper", "Legacyservice",
              "FakeProfileService", "MockCartService", "GeneratedApiService"]
 
 

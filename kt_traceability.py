@@ -40,6 +40,7 @@ LAYER_SUFFIXES = [
     ("Service", "Service"),
     ("Repository", "Repository"),
     ("Repository", "RepoImpl"),
+    ("Repository", "RepositoryImpl"),
     ("Repository", "Repo"),
     ("UseCase", "UseCase"),
     ("ViewModel", "ViewModel"),
