@@ -1,0 +1,7 @@
+Service Filename,URL,URL Const,Service Function,UseCase Filename,UseCase Function,Repository Name,Repository Function,ViewModel Name,ViewModel Function,ViewModel Function Source Name,Fragment Name,Fragment Function,Possible Pattern,Stopped At,Missing Link,Related Unresolved
+PaymentService.kt,api/v2/payments,-,pay,-,-,PaymentRepoImpl,submit,-,-,-,-,-,C,Repository,no proven ViewModel function calls PaymentRepoImpl.submit,Ambiguous binding: PaymentViewModel -> PaymentRepo
+ProductService.kt,Dynamic (@Url),-,downloadImage,-,-,-,-,-,-,-,-,-,A / B / C,Service,no proven UseCase or Repository function calls ProductService.downloadImage,-
+ProductService.kt,Unresolved,PROMO_PATH,getPromos,-,-,-,-,-,-,-,-,-,A / B / C,Service,no proven UseCase or Repository function calls ProductService.getPromos,Unresolved const: ProductService.getPromos -> @GET(PROMO_PATH)
+ProfileService.kt,api/v2/profile/avatar,-,getAvatar,-,-,-,-,-,-,-,-,-,A / B / C,Service,no proven UseCase or Repository function calls ProfileService.getAvatar,-
+ProfileService.kt,api/v2/profile,-,getProfile,-,-,ProfileRepository,getProfile,SettingsViewModel,loadSettings,ProfileRepository,-,-,C,ViewModel,no proven Fragment function calls SettingsViewModel.loadSettings,Unresolved link: SettingsViewModel.loadSettings -> SettingsActivity
+ProfileService.kt,api/v2/profile,-,updateProfile,-,-,ProfileRepository,-,-,-,-,-,-,C,Repository,ProfileRepository.pushUpdate is private and no override/suspend function in ProfileRepository reaches it,No override-suspend entry: ProfileRepository.pushUpdate

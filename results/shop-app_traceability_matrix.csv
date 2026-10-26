@@ -1,0 +1,7 @@
+Service Filename,URL,URL Const,Service Function,UseCase Filename,UseCase Function,Repository Name,Repository Function,ViewModel Name,ViewModel Function,ViewModel Function Source Name,Fragment Name,Fragment Function,Pattern
+CartService.kt,api/v2/cart/items,CART_ITEMS,getCartItems,GetCartUseCase.kt,execute,-,-,CartViewModel,refresh,GetCartUseCase,CartFragment,onResume,B
+CartService.kt,api/v2/cart/items,CART_ITEMS,getCartItems,GetCartUseCase.kt,execute,-,-,CartViewModel,refresh,GetCartUseCase,CheckoutFragment,onStart,B
+CartService.kt,api/v2/cart/{id},-,removeItem,RemoveCartItemUseCase.kt,remove,-,-,CartViewModel,onRemove,RemoveCartItemUseCase,CartFragment,onSwipeToDelete,B
+ProductService.kt,api/v2/products/{id},PRODUCT_DETAIL,getProductDetail,GetProductsUseCase.kt,fetchDetail,ProductRepoImpl,loadDetail,CatalogViewModel,openProduct,ProductRepoImpl,CatalogFragment,onItemClicked,A
+ProductService.kt,api/v2/products,"BASE, PRODUCTS",getProducts,GetProductsUseCase.kt,fetch,ProductRepoImpl,loadCatalog,CatalogViewModel,loadCatalog,ProductRepoImpl,CatalogFragment,onViewCreated,A
+ProfileService.kt,api/v2/profile,-,getProfile,-,-,ProfileRepository,getProfile,ProfileViewModel,loadProfile,ProfileRepository,ProfileFragment,onViewCreated,C

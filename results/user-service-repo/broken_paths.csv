@@ -1,0 +1,2 @@
+Service Filename,URL,URL Const,Service Function,UseCase Filename,UseCase Function,Repository Name,Repository Function,ViewModel Name,ViewModel Function,ViewModel Function Source Name,Fragment Name,Fragment Function,Possible Pattern,Stopped At,Missing Link,Related Unresolved
+UserService.kt,users/{id},-,getUser,-,-,UserRepository,getDisplayName,-,-,-,-,-,C,Repository,no proven ViewModel function calls UserRepository.getDisplayName,-
