@@ -1,5 +1,7 @@
 Row #,From,To,Link Type,File Path,Line,Code Snippet
 1,UserRepo.loadAndFormatUser (private),UserRepo.getUserDisplayName (entry),Private -> entry walk-up,app/src/main/java/com/demo/UserRepo.kt,9,return loadAndFormatUser(userId)
 2,UserService,UserRepo.service,Constructor injection,app/src/main/java/com/demo/UserRepo.kt,2,private val service: UserService
-3,UserService.getUser,UserRepo.loadAndFormatUser,Direct call,app/src/main/java/com/demo/UserRepo.kt,16,val response = service.getUser(
-4,UserService.getUser,user/details,Retrofit @POST,app/src/main/java/com/demo/UserService.kt,3,"@POST(""user/details"")"
+3,UserService.getUser,Request: UserRequest,@Body parameter,app/src/main/java/com/demo/UserService.kt,5,@Body request: UserRequest
+4,UserService.getUser,Response: UserResponse,Return type,app/src/main/java/com/demo/UserService.kt,6,): UserResponse
+5,UserService.getUser,UserRepo.loadAndFormatUser,Direct call,app/src/main/java/com/demo/UserRepo.kt,16,val response = service.getUser(
+6,UserService.getUser,user/details,Retrofit @POST,app/src/main/java/com/demo/UserService.kt,3,"@POST(""user/details"")"

@@ -45,10 +45,12 @@ def main():
     # 1b. broken paths: proven cells + where each chain stopped (first 15 columns)
     bp = os.path.join(a.sample, "expected_broken.csv")
     if os.path.exists(bp):
-        _, got_b = sheet_rows(wb, "Broken Paths")
-        got_b = [r[:15] for r in got_b]
+        hdr_b, got_b = sheet_rows(wb, "Broken Paths")
         with open(bp, newline="") as f:
-            exp_b = [tuple(r) for r in list(csv.reader(f))[1:]]
+            rows_b = list(csv.reader(f))
+        idx = [list(hdr_b).index(h) for h in rows_b[0]]
+        got_b = [tuple(r[i] for i in idx) for r in got_b]
+        exp_b = [tuple(r) for r in rows_b[1:]]
         for r in exp_b:
             if r not in got_b:
                 fails.append("missing broken path: %s" % (r,))

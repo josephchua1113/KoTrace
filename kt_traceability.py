@@ -171,6 +171,9 @@ class KtFunction:
     body_start: int = -1       # char offsets into file text
     body_end: int = -1
     params_text: str = ""
+    params_start: int = -1     # char offset of the parameter list text
+    return_type: str = ""      # declared return type, verbatim ("" if none)
+    return_line: int = 0
     annotations: tuple = ()     # (name, args_text, line)
 
     @property
@@ -342,16 +345,21 @@ def _parse_functions(kf, cls, body_start, body_end):
         j = pend
         n = len(neutral)
         bstart = bend = -1
+        return_type, return_line = "", 0
         while j < n and neutral[j] in " \t\r\n":
             j += 1
         if j < n and neutral[j] == ":":           # return type
             j += 1
+            rt_start = j
             while j < n and neutral[j] not in "{=\n":
                 if neutral[j] == "<":
                     k = match_pair(neutral, j, "<", ">")
                     j = k if k > 0 else j + 1
                     continue
                 j += 1
+            return_type = " ".join(kf.text[rt_start:j].split())
+            return_line = kf.line_of(rt_start + (len(kf.text[rt_start:j]) -
+                                                 len(kf.text[rt_start:j].lstrip())))
             while j < n and neutral[j] in " \t\r\n":
                 j += 1
         if j < n and neutral[j] == "{":
@@ -381,7 +389,9 @@ def _parse_functions(kf, cls, body_start, body_end):
         funcs.append(KtFunction(name=name, owner=cls, file=kf,
                                 decl_line=kf.line_of(kw), modifiers=mods,
                                 body_start=bstart, body_end=bend,
-                                params_text=params_text, annotations=anns))
+                                params_text=params_text, params_start=paren + 1,
+                                return_type=return_type, return_line=return_line,
+                                annotations=anns))
     return funcs
 
 
@@ -687,6 +697,36 @@ class ConstIndex:
 # extract_service_endpoints
 # --------------------------------------------------------------------------- #
 
+def _request_response(kf, cls, fn):
+    """Request = type of the @Body parameter; Response = declared return type.
+
+    Both are taken verbatim from the Service function signature (wrappers such as
+    Response<T> or Call<T> are kept as written). Absent -> "-".
+    """
+    req = DASH
+    bodies = []
+    for part in split_top_level(fn.params_text):
+        if re.search(r"@Body\b", part):
+            m = re.search(r"\b" + IDENT + r"\s*:\s*(.+)$", re.sub(r"@\w+(\([^)]*\))?", "", part).strip(),
+                          re.S)
+            if m:
+                typ = " ".join(m.group(1).split("=")[0].split())
+                rel = fn.params_text.find(part)
+                bodies.append((typ, kf.line_of(fn.params_start + max(rel, 0))))
+    if len(bodies) == 1:
+        req, rline = bodies[0]
+        log_evidence("%s.%s" % (cls.name, fn.name), "Request: %s" % req, "@Body parameter",
+                     kf.rel, rline, kf.snippet(rline))
+    elif len(bodies) > 1:
+        log_unresolved("%s.%s" % (kf.name, fn.name), "Ambiguous binding", kf.rel, fn.decl_line,
+                       "more than one @Body parameter: %s" % ", ".join(b[0] for b in bodies))
+    resp = fn.return_type or DASH
+    if fn.return_type:
+        log_evidence("%s.%s" % (cls.name, fn.name), "Response: %s" % resp, "Return type",
+                     kf.rel, fn.return_line, kf.snippet(fn.return_line))
+    return req, resp
+
+
 def extract_service_endpoints(files, const_index):
     """Service functions carrying a Retrofit annotation, with resolved URL + const names."""
     out = []
@@ -735,7 +775,10 @@ def extract_service_endpoints(files, const_index):
                         consts = ", ".join(names) if names else DASH
                         log_evidence("%s.%s" % (cls.name, fn.name), url,
                                      "Retrofit @%s" % method, kf.rel, line, kf.snippet(line))
+                req, resp = _request_response(kf, cls, fn)
                 out.append({
+                    "request": req,
+                    "response": resp,
                     "service_file": kf.name + ".kt",
                     "service_rel": kf.rel,
                     "service_class": cls.name,
@@ -1151,7 +1194,8 @@ def build_flows(files, endpoints, svc_uc, svc_repo, uc_repo, uc_vm, repo_vm, vm_
     return rows, broken
 
 
-COLUMNS = ["Service Filename", "URL", "URL Const", "Service Function",
+COLUMNS = ["Service Filename", "URL", "Request Object", "Response Object", "URL Const",
+           "Service Function",
            "UseCase Filename", "UseCase Function", "Repository Name", "Repository Function",
            "ViewModel Name", "ViewModel Function", "ViewModel Function Source Name",
            "Fragment Name", "Fragment Function", "Pattern"]
@@ -1167,6 +1211,8 @@ def _row(ep, pattern, uc_file=DASH, uc_fn=DASH, repo_name=DASH, repo_fn=DASH, vm
     return {
         "Service Filename": ep["service_file"],
         "URL": ep["url"],
+        "Request Object": ep["request"],
+        "Response Object": ep["response"],
         "URL Const": ep["url_const"],
         "Service Function": ep["function"],
         "UseCase Filename": uc_file,
@@ -1266,8 +1312,10 @@ def export_excel(out_path, filtered, rows, endpoints, broken=()):
           [[f.layer, f.name + ".kt", f.rel] for f in filtered])
 
     ws5 = wb.create_sheet("Service Endpoints")
-    write(ws5, ["Service Filename", "Service Function", "HTTP", "URL", "URL Const", "Line", "Path"],
-          [[e["service_file"], e["function"], "@" + e["method"], e["url"], e["url_const"],
+    write(ws5, ["Service Filename", "Service Function", "HTTP", "URL", "Request Object",
+                "Response Object", "URL Const", "Line", "Path"],
+          [[e["service_file"], e["function"], "@" + e["method"], e["url"], e["request"],
+            e["response"], e["url_const"],
             e["line"], e["service_rel"]] for e in endpoints])
 
     wb.save(out_path)

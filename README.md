@@ -10,6 +10,10 @@ python3 kt_traceability.py --root /path/to/android/project --out traceability_ma
 
 Sheets: Traceability Matrix, Broken Paths, Evidence, Unresolved, plus Filtered Files and Service Endpoints for review.
 
+**Request Object / Response Object** (after URL) come verbatim from the Service function signature:
+the type of the `@Body` parameter and the declared return type (wrappers like `Response<T>` / `Call<T>` kept as written).
+"-" when there is no `@Body` or no declared return type. Each is backed by an Evidence row.
+
 **Broken Paths** lists every chain that starts at a Service function but does not reach a Fragment.
 Only proven cells are filled (everything else is "-"); each row says which layer it stopped at,
 the missing link, and any related Unresolved entry. Complete chains stay in the matrix; a Service

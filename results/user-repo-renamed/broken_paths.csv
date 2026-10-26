@@ -1,2 +1,2 @@
-Service Filename,URL,URL Const,Service Function,UseCase Filename,UseCase Function,Repository Name,Repository Function,ViewModel Name,ViewModel Function,ViewModel Function Source Name,Fragment Name,Fragment Function,Possible Pattern,Stopped At,Missing Link,Related Unresolved
-UserService.kt,user/details,-,getUser,-,-,UserRepo,getUserDisplayName,-,-,-,-,-,C,Repository,no proven ViewModel function calls UserRepo.getUserDisplayName,-
+Service Filename,URL,Request Object,Response Object,URL Const,Service Function,UseCase Filename,UseCase Function,Repository Name,Repository Function,ViewModel Name,ViewModel Function,ViewModel Function Source Name,Fragment Name,Fragment Function,Possible Pattern,Stopped At,Missing Link,Related Unresolved
+UserService.kt,user/details,UserRequest,UserResponse,-,getUser,-,-,UserRepo,getUserDisplayName,-,-,-,-,-,C,Repository,no proven ViewModel function calls UserRepo.getUserDisplayName,-

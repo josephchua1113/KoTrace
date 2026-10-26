@@ -1,2 +1,2 @@
-Service Filename,Service Function,HTTP,URL,URL Const,Line,Path
-UserService.kt,getUser,@POST,user/details,-,3,app/src/main/java/com/demo/UserService.kt
+Service Filename,Service Function,HTTP,URL,Request Object,Response Object,URL Const,Line,Path
+UserService.kt,getUser,@POST,user/details,UserRequest,UserResponse,-,3,app/src/main/java/com/demo/UserService.kt

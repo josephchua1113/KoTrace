@@ -1,4 +1,5 @@
 Row #,From,To,Link Type,File Path,Line,Code Snippet
 1,UserService,UserRepository.service,Constructor injection,app/src/main/java/com/demo/UserRepository.kt,2,private val service: UserService
-2,UserService.getUser,UserRepository.getDisplayName,Direct call,app/src/main/java/com/demo/UserRepository.kt,7,val user = service.getUser(userId)
-3,UserService.getUser,users/{id},Retrofit @GET,app/src/main/java/com/demo/UserService.kt,3,"@GET(""users/{id}"")"
+2,UserService.getUser,Response: User,Return type,app/src/main/java/com/demo/UserService.kt,6,): User
+3,UserService.getUser,UserRepository.getDisplayName,Direct call,app/src/main/java/com/demo/UserRepository.kt,7,val user = service.getUser(userId)
+4,UserService.getUser,users/{id},Retrofit @GET,app/src/main/java/com/demo/UserService.kt,3,"@GET(""users/{id}"")"
