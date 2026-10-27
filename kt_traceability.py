@@ -945,6 +945,13 @@ def _find_calls(caller_files, callee_files, link_label):
                     cline = kf.line_of(off)
                     src = sorted(callee_funcs[fname],
                                  key=lambda f: (f.body_start < 0, f.file.rel, f.decl_line))[0]
+                    if decl_cls.file.layer == "Service":
+                        # Retrofit endpoints live on the injected interface, never on a class
+                        # that implements it (a fake or mock), so the call belongs to the interface
+                        own = [f for f in callee_funcs[fname] if f.owner == decl_cls.name
+                               and f.file is decl_cls.file]
+                        if own:
+                            src = own[0]
                     edges.append(Edge(
                         source_file=src.file.name + ".kt", source_function=fname,
                         target_file=kf.name + ".kt", target_function=caller_fn.name,
@@ -1076,8 +1083,8 @@ def map_viewmodel_to_fragment(files):
 def resolve_repository_entry_function(files, repo_edge):
     """Repository public-entry rule: a private function never appears in the matrix.
 
-    Walks up callers inside the same Repository class until an `override fun` or
-    `suspend fun` is reached. Returns (function_name, evidence_line) or (None, None).
+    Walks up callers inside the same Repository class until a non-private function (public,
+    internal or protected, suspend or not) is reached. Returns (function_name, evidence_line) or (None, None).
     """
     cls = None
     for kf in [f for f in files if f.layer == "Repository"]:
@@ -1109,7 +1116,7 @@ def resolve_repository_entry_function(files, repo_edge):
                 if not body:
                     continue
                 if re.search(r"(?<![\w.])" + re.escape(cur) + r"\s*\(", body):
-                    if f.is_entry:
+                    if not f.is_private:        # public / internal / protected, any modifiers
                         off = body.find(cur)
                         cline = cls.file.line_of(f.body_start + max(off, 0))
                         log_evidence("%s.%s (private)" % (cls.name, cur),
@@ -1120,9 +1127,9 @@ def resolve_repository_entry_function(files, repo_edge):
                     seen.add(f.name)
                     nxt.append(f.name)
         frontier = nxt
-    log_unresolved("%s.%s" % (cls.name, repo_edge.target_function), "No override-suspend entry",
+    log_unresolved("%s.%s" % (cls.name, repo_edge.target_function), "No public entry",
                    cls.file.rel, start.decl_line,
-                   "upstream call sits in a private function and no override/suspend function in "
+                   "upstream call sits in a private function and no non-private function in "
                    "the same class reaches it")
     return None, None
 
@@ -1203,7 +1210,7 @@ def build_flows(files, endpoints, svc_uc, svc_repo, uc_repo, uc_vm, repo_vm, vm_
                 entry_fn, _ = repo_entry(repo_edge)
                 if entry_fn is None:
                     dead_end(ep, "A", "Repository",
-                             "%s.%s is private and no override/suspend function in %s reaches it"
+                             "%s.%s is private and no non-private function in %s reaches it"
                              % (repo_cls, repo_edge.target_function, repo_cls),
                              (e2.file_path, e2.line), repo_name=repo_cls, **uc,
                              names=("%s.%s" % (repo_cls, repo_edge.target_function),))
@@ -1248,7 +1255,7 @@ def build_flows(files, endpoints, svc_uc, svc_repo, uc_repo, uc_vm, repo_vm, vm_
             entry_fn, _ = repo_entry(e1)
             if entry_fn is None:
                 dead_end(ep, "C / D", "Repository",
-                         "%s.%s is private and no override/suspend function in %s reaches it"
+                         "%s.%s is private and no non-private function in %s reaches it"
                          % (e1.target_class, e1.target_function, e1.target_class),
                          (e1.file_path, e1.line), repo_name=e1.target_class,
                          names=("%s.%s" % (e1.target_class, e1.target_function),))
