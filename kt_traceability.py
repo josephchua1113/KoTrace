@@ -425,6 +425,19 @@ def _parse_properties(kf, body_start, body_end):
         elif "@Inject" in decl_text or "@Inject" in kf.snippet(max(1, line - 1)):
             link_type = "Property injection (@Inject)"
         if not type_name:
+            # = retrofit.create(X::class.java), or the same inside `by lazy { ... }`
+            init = tail
+            lz = re.match(r"by\s+lazy\s*(?:\([^)]*\)\s*)?\{", tail)
+            if lz:
+                open_at = tail_start + lz.end() - 1
+                close_at = match_pair(neutral, open_at, "{", "}")
+                if close_at > 0:
+                    init = neutral[open_at:close_at]
+            c = re.search(r"\bcreate\s*\(\s*(" + IDENT + r")\s*::\s*class(?:\.java)?\s*\)", init)
+            if c:
+                type_name = c.group(1)
+                link_type = link_type or "Retrofit create(%s::class.java)" % type_name
+        if not type_name:
             g = re.search(r"<\s*(" + IDENT + r")\s*>", tail)
             if g:
                 type_name = g.group(1)
@@ -956,6 +969,25 @@ def _find_calls(caller_files, callee_files, link_label):
                         if m.group(1) in callee_funcs:
                             record(m.group(1), caller_fn, caller_fn.body_start + m.start(),
                                    "Direct call")
+                    # inst?.let { it.fn() } / inst.also { s -> s.fn() }: the lambda parameter is inst
+                    for m in re.finditer(r"\b" + re.escape(inst) + r"\s*(?:\?)?\s*\.\s*(let|also)\s*\{",
+                                         body):
+                        open_at = m.end() - 1
+                        close_at = match_pair(body, open_at, "{", "}")
+                        if close_at < 0:
+                            continue
+                        block = body[open_at + 1:close_at - 1]
+                        pm = re.match(r"\s*(" + IDENT + r")\s*->", block)
+                        param = pm.group(1) if pm else "it"
+                        for c in re.finditer(r"\b" + re.escape(param) + r"\s*(?:\?)?\s*\.\s*(" +
+                                             IDENT + r")\s*\(", block):
+                            pre = block[:c.start()]
+                            if param == "it" and pre.count("{") != pre.count("}"):
+                                continue        # an inner lambda has its own `it`
+                            if c.group(1) in callee_funcs:
+                                record(c.group(1), caller_fn,
+                                       caller_fn.body_start + open_at + 1 + c.start(),
+                                       "Direct call (via %s.%s)" % (inst, m.group(1)))
                     if not has_invoke:
                         continue
                     for m in re.finditer(r"(?<![\w.])" + re.escape(inst) + r"\s*\(", body):
