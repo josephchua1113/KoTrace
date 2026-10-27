@@ -1,0 +1,4 @@
+Layer,File,Path
+Service,UserService.kt,app/src/main/java/com/demo/UserService.kt
+UseCase,GetUserUseCase.kt,app/src/main/java/com/demo/GetUserUseCase.kt
+ViewModel,UserViewModel.kt,app/src/main/java/com/demo/UserViewModel.kt

@@ -1,7 +1,7 @@
 Service Filename,URL,Request Object,Response Object,URL Const,Service Function,UseCase Filename,UseCase Function,Repository Name,Repository Function,ViewModel Name,ViewModel Function,ViewModel Function Source Name,Fragment Name,Fragment Function,Possible Pattern,Stopped At
-PaymentService.kt,api/v2/payments,PaymentRequest,PaymentResult,-,pay,-,-,PaymentRepoImpl,submit,-,-,-,-,-,C,Repository
-ProductService.kt,Dynamic (@Url),-,ResponseBody,-,downloadImage,-,-,-,-,-,-,-,-,-,A / B / C,Service
-ProductService.kt,Unresolved,-,List<Promo>,PROMO_PATH,getPromos,-,-,-,-,-,-,-,-,-,A / B / C,Service
-ProfileService.kt,api/v2/profile/avatar,-,Avatar,-,getAvatar,-,-,-,-,-,-,-,-,-,A / B / C,Service
+PaymentService.kt,api/v2/payments,PaymentRequest,PaymentResult,-,pay,-,-,PaymentRepoImpl,submit,-,-,-,-,-,C / D,Repository
+ProductService.kt,Dynamic (@Url),-,ResponseBody,-,downloadImage,-,-,-,-,-,-,-,-,-,A / B / C / D,Service
+ProductService.kt,Unresolved,-,List<Promo>,PROMO_PATH,getPromos,-,-,-,-,-,-,-,-,-,A / B / C / D,Service
+ProfileService.kt,api/v2/profile/avatar,-,Avatar,-,getAvatar,-,-,-,-,-,-,-,-,-,A / B / C / D,Service
 ProfileService.kt,api/v2/profile,-,Profile,-,getProfile,-,-,ProfileRepository,getProfile,SettingsViewModel,loadSettings,ProfileRepository,-,-,C,ViewModel
-ProfileService.kt,api/v2/profile,Profile,Profile,-,updateProfile,-,-,ProfileRepository,-,-,-,-,-,-,C,Repository
+ProfileService.kt,api/v2/profile,Profile,Profile,-,updateProfile,-,-,ProfileRepository,-,-,-,-,-,-,C / D,Repository

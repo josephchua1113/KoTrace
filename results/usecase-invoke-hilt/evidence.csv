@@ -1,0 +1,7 @@
+Row #,From,To,Link Type,File Path,Line,Code Snippet
+1,GetUserUseCase,UserViewModel.getUserUseCase,Constructor injection,app/src/main/java/com/demo/UserViewModel.kt,3,private val getUserUseCase: GetUserUseCase
+2,GetUserUseCase.invoke,UserViewModel.loadUser,Direct call (operator invoke),app/src/main/java/com/demo/UserViewModel.kt,8,val result = getUserUseCase(userId)
+3,UserService,GetUserUseCase.userService,Constructor injection,app/src/main/java/com/demo/GetUserUseCase.kt,2,private val userService: UserService
+4,UserService.getUser,GetUserUseCase.invoke,Direct call,app/src/main/java/com/demo/GetUserUseCase.kt,10,val response = userService.getUser(userId)
+5,UserService.getUser,Response: Response<UserResponse>,Return type,app/src/main/java/com/demo/UserService.kt,6,): Response<UserResponse>
+6,UserService.getUser,users/{id},Retrofit @GET,app/src/main/java/com/demo/UserService.kt,3,"@GET(""users/{id}"")"

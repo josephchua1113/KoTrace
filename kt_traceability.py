@@ -815,20 +815,40 @@ def _impl_index(files, layer):
 
 
 def _bindings(cls):
-    """name -> (type, line, link_type, snippet) proven by injection or delegation."""
+    """name -> (type, line, link_type, snippet, origin) proven by injection or delegation.
+
+    origin is the injected name an alias was assigned from (``val getUser = getUserUseCase``),
+    otherwise None. Aliases are only taken at class level, where the right-hand side is
+    exactly one already-proven binding.
+    """
     b = {}
     for pname, ptype, pline in cls.ctor_params:
         if ptype:
-            b[pname] = (ptype, pline, "Constructor injection", cls.file.snippet(pline))
+            b[pname] = (ptype, pline, "Constructor injection", cls.file.snippet(pline), None)
     for pname, ptype, pline, link, snip in cls.properties:
         if ptype:
-            b[pname] = (ptype, pline, link, snip)
+            b[pname] = (ptype, pline, link, snip, None)
+    if cls.body_start >= 0:
+        neutral = cls.file.neutral
+        body = neutral[cls.body_start:cls.body_end]
+        for m in re.finditer(r"\b(?:val|var)\s+(" + IDENT + r")\s*=\s*(" + IDENT +
+                             r")[ \t]*(?=\n|;|$)", body):
+            alias, src = m.group(1), m.group(2)
+            if src not in b or alias in b:
+                continue
+            depth = body[:m.start()].count("{") - body[:m.start()].count("}")
+            if depth != 1:                      # class level only, not a local val
+                continue
+            line = cls.file.line_of(cls.body_start + m.start())
+            b[alias] = (b[src][0], line, "Alias of %s" % src, cls.file.snippet(line), src)
     return b
 
 
 def _find_calls(caller_files, callee_files, link_label):
     """Generic one-search engine: proven bindings + cited call sites.
 
+    A call is either ``inst.fn(...)`` or, when the callee declares ``operator fun invoke``,
+    ``inst(...)`` (reported as function ``invoke``).
     Returns a list of Edge (source = callee/upstream, target = caller/downstream).
     """
     callee_classes = {}
@@ -845,8 +865,9 @@ def _find_calls(caller_files, callee_files, link_label):
     for kf in caller_files:
         for cls in kf.classes:
             binds = _bindings(cls)
-            used = set()
-            for inst, (tname, bline, link, snip) in sorted(binds.items()):
+            own_fns = {f.name for f in cls.functions}
+            used, candidates = set(), []
+            for inst, (tname, bline, link, snip, origin) in sorted(binds.items()):
                 if tname not in callee_classes:
                     continue
                 decl_cls = callee_classes[tname]
@@ -863,35 +884,57 @@ def _find_calls(caller_files, callee_files, link_label):
                                                    ", ".join(sorted(c.name for c in impl_list)),
                                                    cls.name))
                         continue
+                candidates.append((inst, tname, bline))
                 callee_funcs = {}
                 for t in targets:
                     for f in t.functions:
                         callee_funcs.setdefault(f.name, []).append(f)
+                has_invoke = any("operator" in f.modifiers for f in callee_funcs.get("invoke", []))
+
+                def record(fname, caller_fn, off, how):
+                    cline = kf.line_of(off)
+                    src = sorted(callee_funcs[fname],
+                                 key=lambda f: (f.body_start < 0, f.file.rel, f.decl_line))[0]
+                    edges.append(Edge(
+                        source_file=src.file.name + ".kt", source_function=fname,
+                        target_file=kf.name + ".kt", target_function=caller_fn.name,
+                        file_path=kf.rel, line=cline,
+                        source_class=src.owner, target_class=cls.name,
+                        link_type=how, snippet=kf.snippet(cline)))
+                    log_evidence("%s.%s" % (src.owner, fname),
+                                 "%s.%s" % (cls.name, caller_fn.name),
+                                 how, kf.rel, cline, kf.snippet(cline))
+                    log_evidence("%s" % tname, "%s.%s" % (cls.name, inst),
+                                 link, kf.rel, bline, snip)
+                    used.add(inst)
+                    if origin:
+                        o = binds[origin]
+                        log_evidence("%s" % tname, "%s.%s" % (cls.name, origin),
+                                     o[2], kf.rel, o[1], o[3])
+                        used.add(origin)
+
                 for caller_fn in cls.functions:
                     body = caller_fn.body()
                     if not body:
                         continue
                     for m in re.finditer(r"\b" + re.escape(inst) + r"\s*(?:\?)?\s*\.\s*(" +
                                          IDENT + r")\s*\(", body):
-                        fname = m.group(1)
-                        if fname not in callee_funcs:
-                            continue
+                        if m.group(1) in callee_funcs:
+                            record(m.group(1), caller_fn, caller_fn.body_start + m.start(),
+                                   "Direct call")
+                    if not has_invoke:
+                        continue
+                    for m in re.finditer(r"(?<![\w.])" + re.escape(inst) + r"\s*\(", body):
                         off = caller_fn.body_start + m.start()
-                        cline = kf.line_of(off)
-                        src = sorted(callee_funcs[fname],
-                                     key=lambda f: (f.body_start < 0, f.file.rel, f.decl_line))[0]
-                        edges.append(Edge(
-                            source_file=src.file.name + ".kt", source_function=fname,
-                            target_file=kf.name + ".kt", target_function=caller_fn.name,
-                            file_path=kf.rel, line=cline,
-                            source_class=src.owner, target_class=cls.name,
-                            link_type="Direct call", snippet=kf.snippet(cline)))
-                        log_evidence("%s.%s" % (src.owner, fname),
-                                     "%s.%s" % (cls.name, caller_fn.name),
-                                     "Direct call", kf.rel, cline, kf.snippet(cline))
-                        log_evidence("%s" % tname, "%s.%s" % (cls.name, inst),
-                                     link, kf.rel, bline, snip)
-                        used.add(inst)
+                        if inst in own_fns:
+                            log_unresolved(
+                                "%s.%s -> %s(...)" % (cls.name, caller_fn.name, inst),
+                                "Ambiguous binding", kf.rel, kf.line_of(off),
+                                "%s(...) could be %s's own function %s or %s.invoke; not linked"
+                                % (inst, cls.name, inst, tname))
+                            continue
+                        record("invoke", caller_fn, off, "Direct call (operator invoke)")
+            for inst, tname, bline in candidates:
                 if inst not in used:
                     log_unresolved(
                         "%s.%s : %s" % (cls.name, inst, tname), "Unresolved link", kf.rel, bline,
@@ -1017,7 +1060,7 @@ def build_flows(files, endpoints, svc_uc, svc_repo, uc_repo, uc_vm, repo_vm, vm_
     """Walks every proven chain from each Service function.
 
     Returns (rows, broken):
-      rows   -- complete Pattern A / B / C paths (Traceability Matrix)
+      rows   -- complete Pattern A / B / C / D paths (Traceability Matrix)
       broken -- every dead end: only proven cells are filled, the rest is "-",
                 with the layer where the chain stopped and the missing link.
     """
@@ -1060,7 +1103,7 @@ def build_flows(files, endpoints, svc_uc, svc_repo, uc_repo, uc_vm, repo_vm, vm_
         repo_hits = [e for e in svc_repo if e.source_file == svc_file and e.source_function == svc_fn]
 
         if not uc_hits and not repo_hits:
-            dead_end(ep, "A / B / C", "Service",
+            dead_end(ep, "A / B / C / D", "Service",
                      "no proven UseCase or Repository function calls %s.%s" % (ep["service_class"], svc_fn),
                      here, names=("%s.%s" % (ep["service_class"], svc_fn),))
 
@@ -1069,10 +1112,8 @@ def build_flows(files, endpoints, svc_uc, svc_repo, uc_repo, uc_vm, repo_vm, vm_
             uc = dict(uc_file=e1.target_file, uc_fn=e1.target_function)
             at_uc = (e1.file_path, e1.line)
             a_hits = [e for e in uc_repo
-                      if (e.direction == "repository-calls-usecase" and e.source_file == e1.target_file
-                          and e.source_function == e1.target_function)
-                      or (e.direction == "usecase-calls-repository" and e.target_file == e1.target_file
-                          and e.target_function == e1.target_function)]
+                      if e.direction == "repository-calls-usecase" and e.source_file == e1.target_file
+                      and e.source_function == e1.target_function]
             b_hits = [e for e in uc_vm if e.source_file == e1.target_file
                       and e.source_function == e1.target_function]
             if not a_hits and not b_hits:
@@ -1083,14 +1124,7 @@ def build_flows(files, endpoints, svc_uc, svc_repo, uc_repo, uc_vm, repo_vm, vm_
 
             # Pattern A: Service > UseCase > Repository > ViewModel > Fragment
             for e2 in a_hits:
-                if e2.direction == "repository-calls-usecase":
-                    repo_cls, repo_edge = e2.target_class, e2
-                else:
-                    repo_cls = e2.source_class
-                    repo_edge = Edge(source_file=e2.source_file, source_function=e2.source_function,
-                                     target_file=e2.source_file, target_function=e2.source_function,
-                                     file_path=e2.file_path, line=e2.line,
-                                     source_class=e2.source_class, target_class=e2.source_class)
+                repo_cls, repo_edge = e2.target_class, e2
                 entry_fn, _ = repo_entry(repo_edge)
                 if entry_fn is None:
                     dead_end(ep, "A", "Repository",
@@ -1134,11 +1168,11 @@ def build_flows(files, endpoints, svc_uc, svc_repo, uc_repo, uc_vm, repo_vm, vm_
                     rows.append(_row(ep, "B", repo_name=DASH, repo_fn=DASH,
                                      frag=e3.target_class, frag_fn=e3.target_function, **uc, **vm))
 
-        # ---- Pattern C: Service > Repository > ViewModel > Fragment
+        # ---- Repository branch: Pattern C and Pattern D
         for e1 in repo_hits:
             entry_fn, _ = repo_entry(e1)
             if entry_fn is None:
-                dead_end(ep, "C", "Repository",
+                dead_end(ep, "C / D", "Repository",
                          "%s.%s is private and no override/suspend function in %s reaches it"
                          % (e1.target_class, e1.target_function, e1.target_class),
                          (e1.file_path, e1.line), repo_name=e1.target_class,
@@ -1147,11 +1181,16 @@ def build_flows(files, endpoints, svc_uc, svc_repo, uc_repo, uc_vm, repo_vm, vm_
             rp = dict(repo_name=e1.target_class, repo_fn=entry_fn)
             vm_hits = [e for e in repo_vm if e.source_class == e1.target_class
                        and e.source_function == entry_fn]
-            if not vm_hits:
-                dead_end(ep, "C", "Repository",
-                         "no proven ViewModel function calls %s.%s" % (e1.target_class, entry_fn),
+            d_hits = [e for e in uc_repo if e.direction == "usecase-calls-repository"
+                      and e.source_class == e1.target_class and e.source_function == entry_fn]
+            if not vm_hits and not d_hits:
+                dead_end(ep, "C / D", "Repository",
+                         "no proven ViewModel or UseCase function calls %s.%s"
+                         % (e1.target_class, entry_fn),
                          (e1.file_path, e1.line), **rp,
                          names=_with_supers(e1.target_class), types=BINDING_TYPES)
+
+            # Pattern C: Service > Repository > ViewModel > Fragment
             for e2 in vm_hits:
                 vm = dict(vm=e2.target_class, vm_fn=e2.target_function, vm_src=e1.target_class)
                 f_hits = frag_edges(e2.target_class, e2.target_function)
@@ -1164,6 +1203,30 @@ def build_flows(files, endpoints, svc_uc, svc_repo, uc_repo, uc_vm, repo_vm, vm_
                 for e3 in f_hits:
                     rows.append(_row(ep, "C", uc_file=DASH, uc_fn=DASH,
                                      frag=e3.target_class, frag_fn=e3.target_function, **rp, **vm))
+
+            # Pattern D: Service > Repository > UseCase > ViewModel > Fragment
+            for e2 in d_hits:
+                uc = dict(uc_file=e2.target_file, uc_fn=e2.target_function)
+                uvm_hits = [e for e in uc_vm if e.source_file == e2.target_file
+                            and e.source_function == e2.target_function]
+                if not uvm_hits:
+                    dead_end(ep, "D", "UseCase",
+                             "no proven ViewModel function calls %s.%s"
+                             % (e2.target_class, e2.target_function),
+                             (e2.file_path, e2.line), **rp, **uc,
+                             names=("%s.%s" % (e2.target_class, e2.target_function),))
+                for e3 in uvm_hits:
+                    vm = dict(vm=e3.target_class, vm_fn=e3.target_function, vm_src=e2.target_class)
+                    f_hits = frag_edges(e3.target_class, e3.target_function)
+                    if not f_hits:
+                        dead_end(ep, "D", "ViewModel",
+                                 "no proven Fragment function calls %s.%s"
+                                 % (e3.target_class, e3.target_function),
+                                 (e3.file_path, e3.line), **rp, **uc, **vm,
+                                 names=("%s.%s" % (e3.target_class, e3.target_function),))
+                    for e4 in f_hits:
+                        rows.append(_row(ep, "D", frag=e4.target_class, frag_fn=e4.target_function,
+                                         **rp, **uc, **vm))
 
     # Related Unresolved: entries whose Item names the exact symbol where the chain stopped
     # (or, for a Repository nobody calls, a binding problem on that class or its interface).
@@ -1241,8 +1304,9 @@ def final_check(files, rows, broken=()):
             v = r[col]
             if v != DASH and v not in allowed:
                 problems.append("row references non-filtered file: %s=%s" % (col, v))
-        if r.get("Pattern") == "A" and (r["UseCase Filename"] == DASH or r["Repository Name"] == DASH):
-            problems.append("Pattern A row missing UseCase or Repository: %s" % r)
+        if r.get("Pattern") in ("A", "D") and (r["UseCase Filename"] == DASH
+                                               or r["Repository Name"] == DASH):
+            problems.append("Pattern %s row missing UseCase or Repository: %s" % (r["Pattern"], r))
         if r.get("Pattern") == "B" and r["Repository Name"] != DASH:
             problems.append("Pattern B row has a Repository: %s" % r)
         if r.get("Pattern") == "C" and r["UseCase Filename"] != DASH:

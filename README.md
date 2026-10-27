@@ -19,7 +19,15 @@ Only proven cells are filled (everything else is "-"); each row says which layer
 the missing link, and any related Unresolved entry. Complete chains stay in the matrix; a Service
 function can appear in both when one path is complete and another dead-ends.
 Repository suffixes: Repo, Repository, RepoImpl, RepositoryImpl (exact, case-sensitive).
-Supported chains: A Service>UseCase>Repository>ViewModel>Fragment, B Service>UseCase>ViewModel>Fragment, C Service>Repository>ViewModel>Fragment.
+Supported chains: A Service>UseCase>Repository>ViewModel>Fragment, B Service>UseCase>ViewModel>Fragment, C Service>Repository>ViewModel>Fragment, D Service>Repository>UseCase>ViewModel>Fragment.
+In A the Repository calls the UseCase; in D the UseCase calls the Repository. For D, "ViewModel Function Source Name" is the UseCase.
+
+ViewModel → UseCase links are found by looking for the UseCase class name in the ViewModel's constructor
+or properties, then for a call through that name. Three call shapes are linked, each with an Evidence row:
+`getUserUseCase.invoke(id)` / `getUserUseCase.execute(id)` (dot call), `getUserUseCase(id)` (operator invoke, only when
+the UseCase declares `operator fun invoke`), and a class-level alias such as `private val getUser = getUserUseCase`
+followed by `getUser(id)`. If the alias name is also one of the ViewModel's own functions, the call is logged as
+Ambiguous binding instead of linked.
 
 `tests/fixture` is a synthetic Android project that exercises all three patterns, const/concat/@Url URL resolution and the private→override repository walk-up:
 
@@ -36,6 +44,7 @@ python3 kt_traceability.py --root tests/fixture --out /tmp/fixture.xlsx
 | Pattern A, private → private → `override` walk-up | ProductService → GetProductsUseCase → ProductRepoImpl → CatalogViewModel → CatalogFragment |
 | Pattern B, `by activityViewModels()`, Koin `by inject()`, fan-out to 2 Fragments | CartService → GetCartUseCase / RemoveCartItemUseCase → CartViewModel → CartFragment, CheckoutFragment |
 | Pattern C, `@Inject lateinit var` | ProfileService → ProfileRepository → ProfileViewModel → ProfileFragment |
+| Pattern D, alias + operator invoke, private → suspend walk-up | OrderService → OrderRepository → GetOrdersUseCase → OrderViewModel → OrderFragment |
 | URL: literal, imported const, `Object.CONST`, companion const, `BASE + PRODUCTS`, `@HTTP(path=)`, `@Url`, missing const | ProductService, CartService, ProfileService |
 | No override/suspend entry | ProfileRepository.pushUpdate ← saveProfile (plain `fun`) |
 | Ambiguous binding (2 impls of one interface) | PaymentRepo ← PaymentRepoImpl, FakePaymentRepoImpl |
@@ -48,3 +57,8 @@ Expected results are in `expected_matrix.csv`, `expected_broken.csv`, `expected_
 python3 kt_traceability.py --root samples/shop-app --out shop.xlsx
 python3 check_expected.py --xlsx shop.xlsx --sample samples/shop-app
 ```
+
+Other single-case samples live in `samples/` with their output in `results/<name>/`. `usecase-invoke-alias` and
+`usecase-invoke-hilt` are the two ViewModel styles from the UseCase reference (plain constructor + alias, and
+`@HiltViewModel` + direct invoke). Both link GetUserUseCase.invoke → UserViewModel.loadUser (Pattern B) and stop
+at ViewModel because no Fragment is included.

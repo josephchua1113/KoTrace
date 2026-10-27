@@ -1,5 +1,5 @@
 Item,Type,File Path,Line,Reason
-PaymentService.kt.pay -> stopped at Repository,Unresolved link,app/src/main/java/com/shop/data/repo/PaymentRepoImpl.kt,10,no proven ViewModel function calls PaymentRepoImpl.submit
+PaymentService.kt.pay -> stopped at Repository,Unresolved link,app/src/main/java/com/shop/data/repo/PaymentRepoImpl.kt,10,no proven ViewModel or UseCase function calls PaymentRepoImpl.submit
 PaymentViewModel -> PaymentRepo,Ambiguous binding,app/src/main/java/com/shop/ui/payment/PaymentViewModel.kt,10,"interface PaymentRepo has 2 implementations in scope (FakePaymentRepoImpl, PaymentRepoImpl); cannot prove which one PaymentViewModel uses"
 ProductService.getPromos -> @GET(PROMO_PATH),Unresolved const,app/src/main/java/com/shop/data/remote/ProductService.kt,25,const declaration for 'PROMO_PATH' not found
 ProductService.kt.downloadImage -> stopped at Service,Unresolved link,app/src/main/java/com/shop/data/remote/ProductService.kt,21,no proven UseCase or Repository function calls ProductService.downloadImage

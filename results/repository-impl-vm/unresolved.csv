@@ -1,2 +1,2 @@
 Item,Type,File Path,Line,Reason
-UserService.kt.getUser -> stopped at Repository,Unresolved link,app/src/main/java/com/demo/UserRepositoryImpl.kt,16,no proven ViewModel function calls UserRepositoryImpl.getUserDisplayName
+UserService.kt.getUser -> stopped at Repository,Unresolved link,app/src/main/java/com/demo/UserRepositoryImpl.kt,16,no proven ViewModel or UseCase function calls UserRepositoryImpl.getUserDisplayName
