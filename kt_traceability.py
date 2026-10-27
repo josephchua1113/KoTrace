@@ -179,6 +179,7 @@ class KtFunction:
     return_type: str = ""      # declared return type, verbatim ("" if none)
     return_line: int = 0
     annotations: tuple = ()     # (name, args_text, line)
+    is_property: bool = False  # a ViewModel property whose initializer/getter is treated as its body
 
     @property
     def is_private(self):
@@ -373,26 +374,7 @@ def _parse_functions(kf, cls, body_start, body_end):
             bend = match_pair(neutral, j, "{", "}")
             bstart = j
         elif j < n and neutral[j] == "=":
-            # expression body: until the next declaration at this level, or class end
-            k = j + 1
-            depth = 0
-            while k < body_end:
-                c = neutral[k]
-                if c in "([{":
-                    depth += 1
-                elif c in ")]}":
-                    if depth == 0:
-                        break
-                    depth -= 1
-                elif c == "\n" and depth == 0:
-                    tail = neutral[k + 1:k + 200]
-                    if re.match(r"\s*(@|\}|(?:(?:public|private|internal|protected|override|"
-                                r"suspend|open|abstract|final|inline|operator|external|"
-                                r"infix|tailrec|annotation|companion|data|sealed)\s+)*"
-                                r"(fun|val|var|class|object|interface)\b)", tail):
-                        break
-                k += 1
-            bstart, bend = j, min(k, body_end)
+            bstart, bend = j, _expr_body_end(neutral, j, body_end)
         funcs.append(KtFunction(name=name, owner=cls, file=kf,
                                 decl_line=kf.line_of(kw), modifiers=mods,
                                 body_start=bstart, body_end=bend,
@@ -400,6 +382,67 @@ def _parse_functions(kf, cls, body_start, body_end):
                                 return_type=return_type, return_line=return_line,
                                 annotations=anns))
     return funcs
+
+
+def _expr_body_end(neutral, j, body_end):
+    """End of an `= expression` body starting at j: the next declaration at this level, or class end."""
+    k = j + 1
+    depth = 0
+    while k < body_end:
+        c = neutral[k]
+        if c in "([{":
+            depth += 1
+        elif c in ")]}":
+            if depth == 0:
+                break
+            depth -= 1
+        elif c == "\n" and depth == 0:
+            tail = neutral[k + 1:k + 200]
+            if re.match(r"\s*(@|\}|(?:(?:public|private|internal|protected|override|"
+                        r"suspend|open|abstract|final|inline|operator|external|"
+                        r"infix|tailrec|annotation|companion|data|sealed|lateinit|const)\s+)*"
+                        r"(fun|val|var|class|object|interface|init)\b)", tail):
+                break
+        k += 1
+    return min(k, body_end)
+
+
+def _parse_property_bodies(kf, cls, body_start, body_end):
+    """Class-level properties of a ViewModel whose initializer, `by lazy { }` or getter holds code:
+    `val result: LiveData<X> = token.let { useCase.execute(it) }`. Each becomes a KtFunction named
+    after the property, so calls inside it are found like calls inside a function.
+    """
+    out = []
+    neutral = kf.neutral
+    for m in re.finditer(r"\b(?:val|var)\s+(" + IDENT + r")\s*(?::[^=\n{]*)?", 
+                         neutral[body_start:body_end]):
+        off = body_start + m.start()
+        seg = neutral[body_start:off]
+        if seg.count("{") - seg.count("}") != 1:          # class level only
+            continue
+        j = body_start + m.end()
+        n = len(neutral)
+        while j < n and neutral[j] in " \t":
+            j += 1
+        bstart = bend = -1
+        lz = re.match(r"by\s+lazy\s*(?:\([^)]*\)\s*)?\{", neutral[j:j + 80])
+        if lz:
+            bstart = j + lz.end() - 1
+            bend = match_pair(neutral, bstart, "{", "}")
+        elif j < n and neutral[j] == "=":
+            bstart, bend = j, _expr_body_end(neutral, j, body_end)
+        else:
+            g = re.match(r"\s*get\s*\(\s*\)\s*([={])", neutral[j:j + 200])
+            if g:
+                bstart = j + g.start(1)
+                bend = (match_pair(neutral, bstart, "{", "}") if g.group(1) == "{"
+                        else _expr_body_end(neutral, bstart, body_end))
+        if bstart < 0 or bend < 0 or "(" not in neutral[bstart:bend]:
+            continue                                      # no call inside: alias or constant
+        out.append(KtFunction(name=m.group(1), owner=cls, file=kf, decl_line=kf.line_of(off),
+                              modifiers=_modifiers_before(neutral, off),
+                              body_start=bstart, body_end=bend, is_property=True))
+    return out
 
 
 def _parse_properties(kf, body_start, body_end):
@@ -553,6 +596,11 @@ def parse_file(kf):
         if bstart > 0:
             cls.properties = _parse_properties(kf, cls.body_start, cls.body_end)
             cls.functions = _parse_functions(kf, name, cls.body_start, cls.body_end)
+            if kf.layer == "ViewModel":
+                taken = {f.name for f in cls.functions}
+                cls.functions += [p for p in _parse_property_bodies(kf, name, cls.body_start,
+                                                                     cls.body_end)
+                                  if p.name not in taken]
         kf.classes.append(cls)
     # drop nested classes' duplicated functions: keep outermost owner per offset
     return kf
@@ -913,7 +961,7 @@ def _find_calls(caller_files, callee_files, link_label):
     for kf in caller_files:
         for cls in kf.classes:
             binds = _bindings(cls)
-            own_fns = {f.name for f in cls.functions}
+            own_fns = {f.name for f in cls.functions if not f.is_property}
             used, candidates = set(), []
             for inst, (tname, bline, link, snip, origin) in sorted(binds.items()):
                 if tname not in callee_classes:
@@ -989,6 +1037,12 @@ def _find_calls(caller_files, callee_files, link_label):
                         if m.group(1) in callee_funcs:
                             record(m.group(1), caller_fn, caller_fn.body_start + m.start(),
                                    "Direct call")
+                    # inst.prop where prop is a property-backed entry (vm.result.observe(...))
+                    for m in re.finditer(r"\b" + re.escape(inst) + r"\s*(?:\?)?\s*\.\s*(" +
+                                         IDENT + r")\b(?!\s*[({])", body):
+                        if any(f.is_property for f in callee_funcs.get(m.group(1), [])):
+                            record(m.group(1), caller_fn, caller_fn.body_start + m.start(),
+                                   "Property read")
                     # inst?.let { it.fn() } / inst.also { s -> s.fn() }: the lambda parameter is inst
                     for m in re.finditer(r"\b" + re.escape(inst) + r"\s*(?:\?)?\s*\.\s*(let|also)\s*\{",
                                          body):
