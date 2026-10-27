@@ -216,6 +216,7 @@ class KtFile:
     neutral: str = ""
     line_starts: tuple = ()
     imports: tuple = ()
+    package: str = ""
     classes: list = field(default_factory=list)
 
     def line_of(self, offset):
@@ -253,11 +254,13 @@ class Edge:
     link_type: str = "Direct call"
     snippet: str = ""
     direction: str = "downstream-calls-upstream"
+    source_rel: str = ""
+    target_rel: str = ""
 
     def key(self):
         return (self.source_file, self.source_function, self.source_class,
                 self.target_file, self.target_function, self.target_class,
-                self.file_path, self.line, self.link_type)
+                self.file_path, self.line, self.link_type, self.source_rel, self.target_rel)
 
 
 UNRESOLVED = []          # (item, type, file_path, line, reason)
@@ -463,6 +466,8 @@ def parse_file(kf):
             starts.append(i + 1)
     kf.line_starts = tuple(starts)
     kf.imports = tuple(re.findall(r"^\s*import\s+([\w.]+(?:\.\*)?)", kf.text, re.M))
+    pm = re.search(r"^\s*package\s+([\w.]+)", kf.text, re.M)
+    kf.package = pm.group(1) if pm else ""
 
     neutral = kf.neutral
     for m in re.finditer(r"\b(class|interface|object)\s+(" + IDENT + r")", neutral):
@@ -844,6 +849,23 @@ def _bindings(cls):
     return b
 
 
+def _resolve_type(kf, cands):
+    """Pick the one class a simple type name refers to in file kf, Kotlin's lookup order:
+    explicit import, then same package, then wildcard import. Returns (class, how) or
+    (None, None) when the files do not prove a single class.
+    """
+    if len(cands) == 1:
+        return cands[0], None
+    explicit = [c for c in cands if "%s.%s" % (c.file.package, c.name) in kf.imports]
+    same_pkg = [c for c in cands if c.file.package == kf.package]
+    wildcard = [c for c in cands if "%s.*" % c.file.package in kf.imports]
+    for found, how in ((explicit, "explicit import"), (same_pkg, "same package"),
+                       (wildcard, "wildcard import")):
+        if found:
+            return (found[0], how) if len(found) == 1 else (None, None)
+    return None, None
+
+
 def _find_calls(caller_files, callee_files, link_label):
     """Generic one-search engine: proven bindings + cited call sites.
 
@@ -851,10 +873,10 @@ def _find_calls(caller_files, callee_files, link_label):
     ``inst(...)`` (reported as function ``invoke``).
     Returns a list of Edge (source = callee/upstream, target = caller/downstream).
     """
-    callee_classes = {}
+    callee_classes = {}          # simple name -> every class with that name (modules may repeat it)
     for kf in callee_files:
         for cls in kf.classes:
-            callee_classes[cls.name] = cls
+            callee_classes.setdefault(cls.name, []).append(cls)
     impls = {}
     for kf in callee_files:
         for cls in kf.classes:
@@ -870,7 +892,15 @@ def _find_calls(caller_files, callee_files, link_label):
             for inst, (tname, bline, link, snip, origin) in sorted(binds.items()):
                 if tname not in callee_classes:
                     continue
-                decl_cls = callee_classes[tname]
+                decl_cls, how_resolved = _resolve_type(kf, callee_classes[tname])
+                if decl_cls is None:
+                    log_unresolved(
+                        "%s.%s : %s" % (cls.name, inst, tname), "Ambiguous binding", kf.rel, bline,
+                        "%d classes are named %s (%s) and no import or package in %s proves "
+                        "which one is meant" % (len(callee_classes[tname]), tname,
+                                                ", ".join(sorted(c.file.rel for c in callee_classes[tname])),
+                                                kf.name + ".kt"))
+                    continue
                 targets = [decl_cls]
                 impl_list = impls.get(tname, [])
                 if decl_cls.kind == "interface":
@@ -900,12 +930,16 @@ def _find_calls(caller_files, callee_files, link_label):
                         target_file=kf.name + ".kt", target_function=caller_fn.name,
                         file_path=kf.rel, line=cline,
                         source_class=src.owner, target_class=cls.name,
-                        link_type=how, snippet=kf.snippet(cline)))
+                        link_type=how, snippet=kf.snippet(cline),
+                        source_rel=src.file.rel, target_rel=kf.rel))
                     log_evidence("%s.%s" % (src.owner, fname),
                                  "%s.%s" % (cls.name, caller_fn.name),
                                  how, kf.rel, cline, kf.snippet(cline))
                     log_evidence("%s" % tname, "%s.%s" % (cls.name, inst),
                                  link, kf.rel, bline, snip)
+                    if how_resolved:
+                        log_evidence(tname, decl_cls.file.rel, "Type resolved by " + how_resolved,
+                                     kf.rel, bline, snip)
                     used.add(inst)
                     if origin:
                         o = binds[origin]
@@ -1009,7 +1043,9 @@ def resolve_repository_entry_function(files, repo_edge):
     cls = None
     for kf in [f for f in files if f.layer == "Repository"]:
         for c in kf.classes:
-            if c.name == repo_edge.target_class and kf.name + ".kt" == repo_edge.target_file:
+            if c.name == repo_edge.target_class and (kf.rel == repo_edge.target_rel
+                                                     if repo_edge.target_rel
+                                                     else kf.name + ".kt" == repo_edge.target_file):
                 cls = c
                 break
     if cls is None:
@@ -1067,7 +1103,7 @@ def build_flows(files, endpoints, svc_uc, svc_repo, uc_repo, uc_vm, repo_vm, vm_
     rows, broken = [], []
     ep_by = {}
     for ep in endpoints:
-        ep_by.setdefault((ep["service_file"], ep["function"]), ep)
+        ep_by.setdefault((ep["service_file"], ep["function"], ep["service_rel"]), ep)
 
     def repo_entry(edge):
         return resolve_repository_entry_function(files, edge)
@@ -1097,10 +1133,10 @@ def build_flows(files, endpoints, svc_uc, svc_repo, uc_repo, uc_vm, repo_vm, vm_
         return tuple(sorted({cls_name} | supers.get(cls_name, set())))
 
     for key, ep in sorted(ep_by.items()):
-        svc_file, svc_fn = key
-        here = (ep["service_rel"], ep["line"])
-        uc_hits = [e for e in svc_uc if e.source_file == svc_file and e.source_function == svc_fn]
-        repo_hits = [e for e in svc_repo if e.source_file == svc_file and e.source_function == svc_fn]
+        svc_file, svc_fn, svc_rel = key
+        here = (svc_rel, ep["line"])
+        uc_hits = [e for e in svc_uc if e.source_rel == svc_rel and e.source_function == svc_fn]
+        repo_hits = [e for e in svc_repo if e.source_rel == svc_rel and e.source_function == svc_fn]
 
         if not uc_hits and not repo_hits:
             dead_end(ep, "A / B / C / D", "Service",
