@@ -51,6 +51,10 @@ LAYER_SUFFIXES = [
 EXCLUDED_PATH_PARTS = ("/test/", "/androidtest/", "/build/", "/generated/",
                        "/.git/", "/gen/", "/intermediates/")
 
+# Files whose name starts with one of these (exact, case-sensitive) are skipped, e.g. MockUserService.kt
+EXCLUDED_NAME_PREFIXES = ("Mock",)
+SKIPPED_BY_PREFIX = []   # rel paths of layer files skipped by EXCLUDED_NAME_PREFIXES
+
 IDENT = r"[A-Za-z_][A-Za-z0-9_]*"
 RETROFIT_ANNOTATIONS = ("GET", "POST", "PUT", "PATCH", "DELETE", "HTTP", "HEAD", "OPTIONS")
 
@@ -577,6 +581,9 @@ def filter_files(root):
                 continue
             path = os.path.join(dirpath, fn)
             rel = os.path.relpath(path, root).replace(os.sep, "/")
+            if stem.startswith(EXCLUDED_NAME_PREFIXES):
+                SKIPPED_BY_PREFIX.append(rel)
+                continue
             if any(p in ("/" + rel.lower()) for p in EXCLUDED_PATH_PARTS):
                 continue
             accepted.append(KtFile(path=path, rel=rel, name=stem, layer=layer))
@@ -1450,6 +1457,11 @@ def export_excel(out_path, filtered, rows, endpoints, broken=()):
             e["response"], e["url_const"],
             e["line"], e["service_rel"]] for e in endpoints])
 
+    ws6 = wb.create_sheet("Skipped Files")
+    write(ws6, ["File", "Path", "Reason"],
+          [[rel.rsplit("/", 1)[-1], rel, "name starts with %s" % "/".join(EXCLUDED_NAME_PREFIXES)]
+           for rel in sorted(SKIPPED_BY_PREFIX)])
+
     wb.save(out_path)
     return out_path
 
@@ -1469,6 +1481,11 @@ def main(argv=None):
         print("  %-11s %s" % (f.layer, f.rel))
     if not filtered:
         print("No .kt files matched the Step 0 filter under %s" % root)
+    if SKIPPED_BY_PREFIX:
+        print("STEP 0 - skipped by name prefix %s (%d):" % ("/".join(EXCLUDED_NAME_PREFIXES),
+                                                           len(SKIPPED_BY_PREFIX)))
+        for rel in sorted(SKIPPED_BY_PREFIX):
+            print("  %s" % rel)
 
     const_index = ConstIndex(root)
     endpoints = extract_service_endpoints(filtered, const_index)
