@@ -442,6 +442,12 @@ def _parse_properties(kf, body_start, body_end):
                 type_name = c.group(1)
                 link_type = link_type or "Retrofit create(%s::class.java)" % type_name
         if not type_name:
+            # = GetUserUseCase(...): a constructor call (class names start upper-case)
+            c = re.match(r"=\s*([A-Z]\w*)\s*\(", tail)
+            if c:
+                type_name = c.group(1)
+                link_type = link_type or "Constructed in property (%s(...))" % type_name
+        if not type_name:
             g = re.search(r"<\s*(" + IDENT + r")\s*>", tail)
             if g:
                 type_name = g.group(1)
