@@ -44,6 +44,7 @@ LAYER_SUFFIXES = [
     ("Repository", "RepositoryImpl"),
     ("Repository", "Repo"),
     ("UseCase", "UseCase"),
+    ("UseCase", "Usecase"),   # spelling variant, e.g. GetUserUsecase.kt
     ("ViewModel", "ViewModel"),
     ("Fragment", "Fragment"),
     ("Activity", "Activity"),
