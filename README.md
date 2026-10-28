@@ -19,7 +19,11 @@ Only proven cells are filled (everything else is "-"); each row says which layer
 the missing link, and any related Unresolved entry. Complete chains stay in the matrix; a Service
 function can appear in both when one path is complete and another dead-ends.
 Repository suffixes: Repo, Repository, RepoImpl, RepositoryImpl (exact, case-sensitive).
-Supported chains: A Service>UseCase>Repository>ViewModel>Fragment, B Service>UseCase>ViewModel>Fragment, C Service>Repository>ViewModel>Fragment, D Service>Repository>UseCase>ViewModel>Fragment.
+UseCase suffixes: UseCase and Usecase (exact, case-sensitive, so `GetUserUsecase.kt` is accepted but `GetUserusecase.kt` is not).
+Fully qualified injected types (`private val userUseCase: com.example.UserUseCase`, in a constructor, a property or `@Inject lateinit var`) are resolved by their package: only a class named `UserUseCase` declared in `package com.example` matches. If no such class is among the filtered files, the binding is logged as Unresolved instead of falling back to another `UserUseCase`.
+Folder exclusions (test/, androidTest/, build/, generated/, ...) only apply to folders above the source root (`src/<set>/java/` or `src/<set>/kotlin/`). Package folders below it are never excluded, so `package scan.test` in `src/main/java/scan/test/` is analyzed, while `src/test/java/...` is still skipped.
+Files whose name contains `mock` anywhere (case-insensitive, e.g. `MockUserService.kt`, `UserMockService.kt`, `UserServiceMock.kt`) are skipped and listed on the console and the "Skipped Files" sheet. Only the file name is checked, not the folder or the class name inside.
+Supported chains: A Service>UseCase>Repository>ViewModel>Fragment, B Service>UseCase>ViewModel>Fragment, C Service>Repository>ViewModel>Fragment, D Service>Repository>UseCase>ViewModel>Fragment, E Service>UseCase>Fragment/Activity (the screen calls the UseCase directly, no Repository or ViewModel; ViewModel columns are "-").
 In A the Repository calls the UseCase; in D the UseCase calls the Repository. For D, "ViewModel Function Source Name" is the UseCase.
 
 ViewModel → UseCase links are found by looking for the UseCase class name in the ViewModel's constructor
@@ -46,9 +50,9 @@ python3 kt_traceability.py --root tests/fixture --out /tmp/fixture.xlsx
 | Pattern C, `@Inject lateinit var` | ProfileService → ProfileRepository → ProfileViewModel → ProfileFragment |
 | Pattern D, alias + operator invoke, private → suspend walk-up | OrderService → OrderRepository → GetOrdersUseCase → OrderViewModel → OrderFragment |
 | URL: literal, imported const, `Object.CONST`, companion const, `BASE + PRODUCTS`, `@HTTP(path=)`, `@Url`, missing const | ProductService, CartService, ProfileService |
-| No override/suspend entry | ProfileRepository.pushUpdate ← saveProfile (plain `fun`) |
+| Private → plain public `fun` walk-up | ProfileRepository.pushUpdate → saveProfile → ProfileViewModel.save → ProfileFragment |
 | Ambiguous binding (2 impls of one interface) | PaymentRepo ← PaymentRepoImpl, FakePaymentRepoImpl |
-| ViewModel used only by an Activity | SettingsViewModel ← SettingsActivity |
+| ViewModel used by an Activity (shown in the Fragment columns) | ProfileService → ProfileRepository → SettingsViewModel → SettingsActivity |
 | Step 0 exclusions | ProductRepoHelper, Legacyservice, files under test/, androidTest/, build/generated/ |
 
 Expected results are in `expected_matrix.csv`, `expected_broken.csv`, `expected_files.csv` and `expected_unresolved.csv`. To test:
@@ -62,3 +66,23 @@ Other single-case samples live in `samples/` with their output in `results/<name
 `usecase-invoke-hilt` are the two ViewModel styles from the UseCase reference (plain constructor + alias, and
 `@HiltViewModel` + direct invoke). Both link GetUserUseCase.invoke → UserViewModel.loadUser (Pattern B) and stop
 at ViewModel because no Fragment is included.
+
+When two classes share a simple name (for example `UserService` in two modules), the injected type is resolved
+the way Kotlin does it: explicit import, then same package, then wildcard import. The choice gets a
+"Type resolved by ..." Evidence row. If none of these proves one class, the binding is logged as Ambiguous
+binding and not linked. See `samples/duplicate-service-name`.
+
+Repository walk-up: a private function is never reported. The analyzer walks up to the first non-private
+function in the same class that calls it (public, internal or protected, suspend or not), with a
+"Private -> entry walk-up" Evidence row. If only private functions reach it, it is logged as "No public entry"
+(`samples/private-only-no-entry`).
+
+ViewModel properties count as ViewModel functions when their initializer, `by lazy { }` or getter makes a call,
+e.g. `val authenticationResult: LiveData<...> = authToken.let { getAuthenticationUseCase.execute(it) }`. The
+property name goes in "ViewModel Function", and a Fragment reading it (`vm.authenticationResult.observe(...)`) is
+linked as "Property read". See `samples/viewmodel-property-usecase`.
+
+Activities are linked to ViewModels the same way Fragments are and appear in the "Fragment Name" / "Fragment
+Function" columns. An Activity's ViewModel can come from `by viewModels()`, `by viewModel()` (Koin),
+`ViewModelProvider(this).get(X::class.java)` or `[X::class.java]`, or a typed `lateinit var`. See
+`samples/activity-observes-viewmodel`.

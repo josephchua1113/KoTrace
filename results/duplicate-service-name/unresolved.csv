@@ -1,0 +1,3 @@
+Item,Type,File Path,Line,Reason
+UserService.kt.getUser -> stopped at Repository,Unresolved link,app/src/main/java/com/demo/UserRepo.kt,34,no proven ViewModel or UseCase function calls UserRepo.doregister
+UserService.kt.register -> stopped at Service,Unresolved link,feature/src/main/java/com/other/UserService.kt,4,no proven UseCase or Repository function calls UserService.register

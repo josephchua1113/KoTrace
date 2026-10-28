@@ -1,0 +1,7 @@
+Layer,File,Path
+Activity,LoginActivity.kt,app/src/main/java/com/demo/LoginActivity.kt
+Fragment,ProfileFragment.kt,app/src/main/java/com/demo/ProfileFragment.kt
+Service,UserService.kt,app/src/main/java/com/demo/UserService.kt
+UseCase,GetUserUsecase.kt,app/src/main/java/com/demo/GetUserUsecase.kt
+UseCase,LoginUsecase.kt,app/src/main/java/com/demo/LoginUsecase.kt
+ViewModel,ProfileViewModel.kt,app/src/main/java/com/demo/ProfileViewModel.kt

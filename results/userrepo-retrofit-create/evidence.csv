@@ -1,0 +1,6 @@
+Row #,From,To,Link Type,File Path,Line,Code Snippet
+1,UserRepo.fetchUserAPI (private),UserRepo.doregister (entry),Private -> entry walk-up,app/src/main/java/com/demo/UserRepo.kt,9,val response = fetchUserAPI(userId)
+2,UserService,UserRepo.service,Retrofit create(UserService::class.java),app/src/main/java/com/demo/UserRepo.kt,2,private val service = RetrofitClient.retrofit.create(UserService::class.java)
+3,UserService.getUser,Response: Response<UserResponse>,Return type,app/src/main/java/com/demo/UserService.kt,8,): Response<UserResponse>
+4,UserService.getUser,UserRepo.fetchUserAPI,Direct call,app/src/main/java/com/demo/UserRepo.kt,31,return service.getUser(userId)
+5,UserService.getUser,users/{id},Retrofit @GET,app/src/main/java/com/demo/UserService.kt,5,"@GET(""users/{id}"")"

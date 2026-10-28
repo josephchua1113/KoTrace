@@ -1,10 +1,7 @@
 Type,Must mention
 Unresolved const,PROMO_PATH
-No override-suspend entry,ProfileRepository.pushUpdate
 Ambiguous binding,PaymentViewModel -> PaymentRepo
-Unresolved link,SettingsViewModel.loadSettings
 Unresolved link,ProductService.kt.downloadImage
 Unresolved link,ProductService.kt.getPromos
 Unresolved link,ProfileService.kt.getAvatar
-Unresolved link,ProfileService.kt.updateProfile
 Unresolved link,PaymentService.kt.pay

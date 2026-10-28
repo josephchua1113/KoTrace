@@ -370,7 +370,7 @@ class CheckoutFragment : Fragment() {
 
 ## Pattern C: Service > Repository > ViewModel > Fragment
 
-Expected row: getProfile → ProfileRepository.getProfile (`@Inject lateinit var`) → loadProfile → onViewCreated. `updateProfile` is called from private `pushUpdate`, whose only caller `saveProfile` is a plain `fun` → **No override-suspend entry**. `getAvatar` is never called → **Unresolved link**.
+Expected row: getProfile → ProfileRepository.getProfile (`@Inject lateinit var`) → loadProfile → onViewCreated. `updateProfile` is called from private `pushUpdate`, which walks up to the plain public `fun saveProfile` → ProfileViewModel.save → ProfileFragment (second Pattern C row). `getAvatar` is never called → **Unresolved link**.
 
 **main/java/com/shop/data/remote/ProfileService.kt**
 
@@ -468,9 +468,9 @@ class ProfileFragment : Fragment() {
 }
 ```
 
-## Edge case: Activity-only ViewModel
+## Activity screen
 
-SettingsViewModel calls ProfileRepository.getProfile but is used only by an Activity → no row, logged as Unresolved link.
+SettingsViewModel calls ProfileRepository.getProfile and is used by SettingsActivity → a Pattern C row with SettingsActivity.onCreate in the Fragment columns.
 
 **main/java/com/shop/ui/settings/SettingsViewModel.kt**
 
@@ -690,7 +690,6 @@ interface GeneratedApiService {
 | Type | Must mention |
 |---|---|
 | Unresolved const | PROMO_PATH |
-| No override-suspend entry | ProfileRepository.pushUpdate |
 | Ambiguous binding | PaymentViewModel -> PaymentRepo |
 | Unresolved link | SettingsViewModel.loadSettings |
 | Unresolved link | ProductService.kt.downloadImage |

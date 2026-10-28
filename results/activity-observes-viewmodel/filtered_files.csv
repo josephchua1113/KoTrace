@@ -1,0 +1,6 @@
+Layer,File,Path
+Activity,LoginActivity.kt,app/src/main/java/com/demo/LoginActivity.kt
+Repository,UserRepo.kt,app/src/main/java/com/demo/UserRepo.kt
+Service,UserService.kt,app/src/main/java/com/demo/UserService.kt
+UseCase,GetAuthenticationUseCase.kt,app/src/main/java/com/demo/GetAuthenticationUseCase.kt
+ViewModel,LoginViewModel.kt,app/src/main/java/com/demo/LoginViewModel.kt

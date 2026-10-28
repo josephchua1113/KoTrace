@@ -1,0 +1,11 @@
+Layer,File,Path
+Activity,AdminActivity.kt,app/src/main/java/com/app/AdminActivity.kt
+Fragment,ProfileFragment.kt,app/src/main/java/com/app/ProfileFragment.kt
+Repository,UserRepository.kt,feature-a/src/main/java/com/example/UserRepository.kt
+Service,UserService.kt,feature-a/src/main/java/com/example/UserService.kt
+Service,UserService.kt,feature-b/src/main/java/com/other/UserService.kt
+UseCase,UserUseCase.kt,feature-a/src/main/java/com/example/UserUseCase.kt
+UseCase,UserUseCase.kt,feature-b/src/main/java/com/other/UserUseCase.kt
+ViewModel,AdminViewModel.kt,app/src/main/java/com/app/AdminViewModel.kt
+ViewModel,BrokenViewModel.kt,app/src/main/java/com/app/BrokenViewModel.kt
+ViewModel,ProfileViewModel.kt,app/src/main/java/com/app/ProfileViewModel.kt

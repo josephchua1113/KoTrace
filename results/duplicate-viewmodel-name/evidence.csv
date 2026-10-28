@@ -1,0 +1,19 @@
+Row #,From,To,Link Type,File Path,Line,Code Snippet
+1,LoginViewModel,LoginFragment.loginViewModel,Delegation (by viewModels()),app/src/main/java/com/demo/LoginFragment.kt,3,private val loginViewModel: LoginViewModel by viewModels()
+2,LoginViewModel,app/src/main/java/com/demo/LoginViewModel.kt,Type resolved by same package,app/src/main/java/com/demo/LoginFragment.kt,3,private val loginViewModel: LoginViewModel by viewModels()
+3,LoginViewModel.load,LoginFragment.onViewCreated,Direct call,app/src/main/java/com/demo/LoginFragment.kt,4,"override fun onViewCreated(view: View, savedInstanceState: Bundle?) { loginViewModel.load() }"
+4,ProfileViewModel,ProfileFragment.vm,Delegation (by viewModels()),app/src/main/java/com/demo/ProfileFragment.kt,3,private val vm: ProfileViewModel by viewModels()
+5,ProfileViewModel.load,ProfileFragment.onResume,Direct call,app/src/main/java/com/demo/ProfileFragment.kt,4,override fun onResume() { vm.load() }
+6,UserRepo,LoginViewModel.repo,Constructor injection,app/src/main/java/com/demo/LoginViewModel.kt,2,class LoginViewModel(private val repo: UserRepo) : ViewModel() {
+7,UserRepo,LoginViewModel.repo,Constructor injection,feature/src/main/java/com/other/LoginViewModel.kt,3,class LoginViewModel(private val repo: UserRepo) : ViewModel() {
+8,UserRepo,ProfileViewModel.repo,Constructor injection,app/src/main/java/com/demo/ProfileViewModel.kt,2,class ProfileViewModel(private val repo: UserRepo) : ViewModel() {
+9,UserRepo.profile,LoginViewModel.load,Direct call,feature/src/main/java/com/other/LoginViewModel.kt,4,fun load() { viewModelScope.launch { repo.profile() } }
+10,UserRepo.profile,ProfileViewModel.load,Direct call,app/src/main/java/com/demo/ProfileViewModel.kt,3,fun load() { viewModelScope.launch { repo.profile() } }
+11,UserRepo.users,LoginViewModel.load,Direct call,app/src/main/java/com/demo/LoginViewModel.kt,3,fun load() { viewModelScope.launch { repo.users() } }
+12,UserService,UserRepo.service,Constructor injection,app/src/main/java/com/demo/UserRepo.kt,2,class UserRepo(private val service: UserService) {
+13,UserService.getProfile,Response: Profile,Return type,app/src/main/java/com/demo/UserService.kt,6,suspend fun getProfile(): Profile
+14,UserService.getProfile,UserRepo.profile,Direct call,app/src/main/java/com/demo/UserRepo.kt,4,suspend fun profile() = service.getProfile()
+15,UserService.getProfile,profile,Retrofit @GET,app/src/main/java/com/demo/UserService.kt,5,"@GET(""profile"")"
+16,UserService.getUsers,Response: List<User>,Return type,app/src/main/java/com/demo/UserService.kt,4,suspend fun getUsers(): List<User>
+17,UserService.getUsers,UserRepo.users,Direct call,app/src/main/java/com/demo/UserRepo.kt,3,suspend fun users() = service.getUsers()
+18,UserService.getUsers,users,Retrofit @GET,app/src/main/java/com/demo/UserService.kt,3,"@GET(""users"")"

@@ -1,0 +1,2 @@
+Item,Type,File Path,Line,Reason
+SettingsViewModel.userUseCase : scan.testing.UserUseCase,Unresolved link,app/src/main/java/scan/app/SettingsViewModel.kt,5,type is declared as scan.testing.UserUseCase but no filtered class UserUseCase is in package scan.testing (found: app/src/main/java/scan/test/UserUseCase.kt)

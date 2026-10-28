@@ -1,0 +1,8 @@
+Layer,File,Path
+Activity,LoginActivity.kt,app/src/main/java/com/demo/LoginActivity.kt
+Activity,MainActivity.kt,app/src/main/java/com/demo/MainActivity.kt
+Fragment,ProfileFragment.kt,app/src/main/java/com/demo/ProfileFragment.kt
+Service,UserService.kt,app/src/main/java/com/demo/UserService.kt
+UseCase,GetAuthenticationUseCase.kt,app/src/main/java/com/demo/GetAuthenticationUseCase.kt
+UseCase,GetOrdersUseCase.kt,app/src/main/java/com/demo/GetOrdersUseCase.kt
+UseCase,GetUserUseCase.kt,app/src/main/java/com/demo/GetUserUseCase.kt

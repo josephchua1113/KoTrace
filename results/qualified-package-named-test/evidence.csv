@@ -1,0 +1,10 @@
+Row #,From,To,Link Type,File Path,Line,Code Snippet
+1,ProfileViewModel,ProfileFragment.viewModel,Delegation (by viewModels()),app/src/main/java/scan/app/ProfileFragment.kt,4,private val viewModel: ProfileViewModel by viewModels()
+2,ProfileViewModel.load,ProfileFragment.onViewCreated,Direct call,app/src/main/java/scan/app/ProfileFragment.kt,6,"viewModel.load(""42"")"
+3,UserService,UserUseCase.service,Constructor injection,app/src/main/java/scan/test/UserUseCase.kt,4,class UserUseCase(private val service: UserService) {
+4,UserService.getUser,Response: Response<UserResponse>,Return type,app/src/main/java/scan/test/UserService.kt,5,"suspend fun getUser(@Path(""id"") id: String): Response<UserResponse>"
+5,UserService.getUser,UserUseCase.execute,Direct call,app/src/main/java/scan/test/UserUseCase.kt,5,suspend fun execute(id: String) = service.getUser(id)
+6,UserService.getUser,users/{id},Retrofit @GET,app/src/main/java/scan/test/UserService.kt,4,"@GET(""users/{id}"")"
+7,UserUseCase,ProfileViewModel.userUseCase,Constructor injection,app/src/main/java/scan/app/ProfileViewModel.kt,4,private val userUseCase: scan.test.UserUseCase
+8,UserUseCase,app/src/main/java/scan/test/UserUseCase.kt,Type resolved by fully qualified type,app/src/main/java/scan/app/ProfileViewModel.kt,4,private val userUseCase: scan.test.UserUseCase
+9,UserUseCase.execute,ProfileViewModel.load,Direct call,app/src/main/java/scan/app/ProfileViewModel.kt,7,viewModelScope.launch { userUseCase.execute(id) }

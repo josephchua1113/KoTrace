@@ -1,0 +1,2 @@
+Item,Type,File Path,Line,Reason
+UserService.kt.getProfile -> stopped at ViewModel,Unresolved link,feature/src/main/java/com/other/LoginViewModel.kt,4,no proven Fragment or Activity function calls LoginViewModel.load

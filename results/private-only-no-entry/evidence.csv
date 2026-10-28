@@ -1,0 +1,5 @@
+Row #,From,To,Link Type,File Path,Line,Code Snippet
+1,UserService,UserRepo.service,Constructor injection,app/src/main/java/com/demo/UserRepo.kt,3,class UserRepo(private val service: UserService) {
+2,UserService.getAuth,Response: Call<AuthResponse>,Return type,app/src/main/java/com/demo/UserService.kt,6,fun getAuth(): Call<AuthResponse>
+3,UserService.getAuth,UserRepo.getAuthAPI,Direct call,app/src/main/java/com/demo/UserRepo.kt,5,private fun getAuthAPI(): Call<AuthResponse> = service.getAuth()
+4,UserService.getAuth,auth,Retrofit @GET,app/src/main/java/com/demo/UserService.kt,5,"@GET(""auth"")"

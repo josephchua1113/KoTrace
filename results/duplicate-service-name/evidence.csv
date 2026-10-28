@@ -1,0 +1,10 @@
+Row #,From,To,Link Type,File Path,Line,Code Snippet
+1,UserRepo.fetchUserAPI (private),UserRepo.doregister (entry),Private -> entry walk-up,app/src/main/java/com/demo/UserRepo.kt,12,val response = fetchUserAPI(userId)
+2,UserService,UserRepo.service,Constructor injection,app/src/main/java/com/demo/UserRepo.kt,4,private val service: UserService
+3,UserService,app/src/main/java/com/demo/UserService.kt,Type resolved by explicit import,app/src/main/java/com/demo/UserRepo.kt,4,private val service: UserService
+4,UserService.getUser,Response: Response<UserResponse>,Return type,app/src/main/java/com/demo/UserService.kt,8,): Response<UserResponse>
+5,UserService.getUser,UserRepo.fetchUserAPI,Direct call,app/src/main/java/com/demo/UserRepo.kt,34,return service.getUser(userId)
+6,UserService.getUser,users/{id},Retrofit @GET,app/src/main/java/com/demo/UserService.kt,5,"@GET(""users/{id}"")"
+7,UserService.register,Request: RegisterRequest,@Body parameter,feature/src/main/java/com/other/UserService.kt,5,suspend fun register(@Body req: RegisterRequest): Response<Unit>
+8,UserService.register,Response: Response<Unit>,Return type,feature/src/main/java/com/other/UserService.kt,5,suspend fun register(@Body req: RegisterRequest): Response<Unit>
+9,UserService.register,users/register,Retrofit @POST,feature/src/main/java/com/other/UserService.kt,4,"@POST(""users/register"")"

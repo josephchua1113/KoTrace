@@ -4,8 +4,4 @@ PaymentViewModel -> PaymentRepo,Ambiguous binding,app/src/main/java/com/shop/ui/
 ProductService.getPromos -> @GET(PROMO_PATH),Unresolved const,app/src/main/java/com/shop/data/remote/ProductService.kt,25,const declaration for 'PROMO_PATH' not found
 ProductService.kt.downloadImage -> stopped at Service,Unresolved link,app/src/main/java/com/shop/data/remote/ProductService.kt,21,no proven UseCase or Repository function calls ProductService.downloadImage
 ProductService.kt.getPromos -> stopped at Service,Unresolved link,app/src/main/java/com/shop/data/remote/ProductService.kt,25,no proven UseCase or Repository function calls ProductService.getPromos
-ProfileRepository.pushUpdate,No override-suspend entry,app/src/main/java/com/shop/data/repo/ProfileRepository.kt,21,upstream call sits in a private function and no override/suspend function in the same class reaches it
 ProfileService.kt.getAvatar -> stopped at Service,Unresolved link,app/src/main/java/com/shop/data/remote/ProfileService.kt,16,no proven UseCase or Repository function calls ProfileService.getAvatar
-ProfileService.kt.getProfile -> stopped at ViewModel,Unresolved link,app/src/main/java/com/shop/ui/settings/SettingsViewModel.kt,13,no proven Fragment function calls SettingsViewModel.loadSettings
-ProfileService.kt.updateProfile -> stopped at Repository,Unresolved link,app/src/main/java/com/shop/data/repo/ProfileRepository.kt,21,ProfileRepository.pushUpdate is private and no override/suspend function in ProfileRepository reaches it
-SettingsViewModel.loadSettings -> SettingsActivity,Unresolved link,app/src/main/java/com/shop/ui/settings/SettingsActivity.kt,12,"ViewModel function is used by an Activity, not a Fragment; the matrix has no Activity columns so this path has no Fragment cell"

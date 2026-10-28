@@ -1,0 +1,6 @@
+Layer,File,Path
+Fragment,ProfileFragment.kt,app/src/main/java/scan/app/ProfileFragment.kt
+Service,UserService.kt,app/src/main/java/scan/test/UserService.kt
+UseCase,UserUseCase.kt,app/src/main/java/scan/test/UserUseCase.kt
+ViewModel,ProfileViewModel.kt,app/src/main/java/scan/app/ProfileViewModel.kt
+ViewModel,SettingsViewModel.kt,app/src/main/java/scan/app/SettingsViewModel.kt

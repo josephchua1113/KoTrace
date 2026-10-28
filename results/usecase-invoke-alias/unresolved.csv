@@ -1,2 +1,2 @@
 Item,Type,File Path,Line,Reason
-UserService.kt.getUser -> stopped at ViewModel,Unresolved link,app/src/main/java/com/demo/UserViewModel.kt,19,no proven Fragment function calls UserViewModel.loadUser
+UserService.kt.getUser -> stopped at ViewModel,Unresolved link,app/src/main/java/com/demo/UserViewModel.kt,19,no proven Fragment or Activity function calls UserViewModel.loadUser

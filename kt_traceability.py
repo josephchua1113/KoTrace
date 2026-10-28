@@ -52,6 +52,23 @@ LAYER_SUFFIXES = [
 
 EXCLUDED_PATH_PARTS = ("/test/", "/androidtest/", "/build/", "/generated/",
                        "/.git/", "/gen/", "/intermediates/")
+# Folders below a source root (src/<set>/java/ or src/<set>/kotlin/) are package folders,
+# e.g. scan/test/ for `package scan.test`, so the exclusions above only look at the part
+# of the path up to and including that source root.
+_SOURCE_ROOT = re.compile(r"^.*?/src/[^/]+/(?:java|kotlin)/")
+
+
+def _excluded_path(root, path):
+    """True when a folder named in EXCLUDED_PATH_PARTS sits between --root and the source
+    root of path (or anywhere below --root when path has no source root)."""
+    rel = ("/" + os.path.relpath(path, root).replace(os.sep, "/") + "/").lower()
+    full = ("/" + os.path.abspath(path).replace(os.sep, "/").strip("/") + "/").lower()
+    m = _SOURCE_ROOT.match(full)
+    if m:
+        pkg_part = "/" + full[m.end():]     # package folders below the source root
+        # --root above the source root: drop the package folders; at or below it: nothing left
+        rel = rel[:len(rel) - len(pkg_part) + 1] if len(rel) > len(pkg_part) else "/"
+    return any(p in rel for p in EXCLUDED_PATH_PARTS)
 
 # Files whose name contains one of these anywhere (case-insensitive) are skipped,
 # e.g. MockUserService.kt, UserMockService.kt, UserServiceMock.kt
@@ -461,7 +478,7 @@ def _parse_properties(kf, body_start, body_end):
         tail = neutral[tail_start:neutral.find("\n", tail_start) if neutral.find("\n", tail_start) > 0 else body_end]
         decl_text = kf.snippet(line)
         link_type = None
-        type_name = _bare_type(declared)
+        type_name = _bare_type(declared, qualified=True)
         if re.search(r"\bby\s+viewModels\s*(<|\()", tail) or re.search(r"\bby\s+viewModels", tail):
             link_type = "Delegation (by viewModels())"
         elif re.search(r"\bby\s+activityViewModels", tail):
@@ -496,7 +513,7 @@ def _parse_properties(kf, body_start, body_end):
                     link_type = link_type or "ViewModelProvider(...).get(%s::class.java)" % type_name
         if not type_name:
             # = GetUserUseCase(...): a constructor call (class names start upper-case)
-            c = re.match(r"=\s*([A-Z]\w*)\s*\(", tail)
+            c = re.match(r"=\s*((?:[a-z_]\w*\.)*[A-Z]\w*)\s*\(", tail)
             if c:
                 type_name = c.group(1)
                 link_type = link_type or "Constructed in property (%s(...))" % type_name
@@ -511,14 +528,16 @@ def _parse_properties(kf, body_start, body_end):
                          r")\s*:\s*([^=\n]+)", neutral[body_start:body_end]):
         off = body_start + m.start()
         line = kf.line_of(off)
-        t = _bare_type(m.group(2))
+        t = _bare_type(m.group(2), qualified=True)
         if t:
             entry = (m.group(1), t, line, "Property injection (@Inject)", kf.snippet(line))
             props = [p for p in props if not (p[0] == entry[0] and p[2] == entry[2])] + [entry]
     return tuple(props)
 
 
-def _bare_type(t):
+def _bare_type(t, qualified=False):
+    """Simple type name of a declared type. With qualified=True a fully qualified type
+    (com.example.UserUseCase) keeps its package, so the binding can be resolved by it."""
     t = (t or "").strip().rstrip("?")
     if not t:
         return ""
@@ -526,10 +545,14 @@ def _bare_type(t):
     if not m:
         return ""
     base = m.group(1)
-    # unwrap single generic wrappers e.g. Lazy<UserRepo>, Provider<X>
-    g = re.match(r"^(?:" + IDENT + r"\s*\.\s*)*" + IDENT + r"\s*<\s*(" + IDENT + r")\s*>", t)
+    # unwrap single generic wrappers e.g. Lazy<UserRepo>, dagger.Lazy<com.example.UserRepo>
+    g = re.match(r"^(?:" + IDENT + r"\s*\.\s*)*" + IDENT + r"\s*<\s*([\w.\s]+?)\s*\??\s*>", t)
     if g and base in ("Lazy", "Provider", "Flow", "StateFlow", "LiveData", "Optional"):
-        return g.group(1)
+        return _bare_type(g.group(1), qualified)
+    if qualified:
+        q = re.match(r"^((?:[a-z_]\w*\s*\.\s*)+)([A-Z]\w*)\b(?!\s*\.)", t)
+        if q:
+            return re.sub(r"\s+", "", q.group(1)) + q.group(2)
     return base
 
 
@@ -582,7 +605,7 @@ def parse_file(kf):
                         if rel < 0:
                             rel = ptext.find(pm.group(1))
                         poff = base_off + (rel if rel >= 0 else 0)
-                        ctor_params.append((pm.group(1), _bare_type(pm.group(2)),
+                        ctor_params.append((pm.group(1), _bare_type(pm.group(2), qualified=True),
                                             kf.line_of(poff)))
                 cursor = pend
         # supertypes
@@ -625,8 +648,7 @@ def filter_files(root):
     accepted = []
     for dirpath, dirnames, filenames in os.walk(root):
         dirnames.sort()
-        norm = ("/" + os.path.relpath(dirpath, root).replace(os.sep, "/") + "/").lower()
-        if any(p in norm for p in EXCLUDED_PATH_PARTS):
+        if _excluded_path(root, dirpath):
             dirnames[:] = []
             continue
         for fn in sorted(filenames):
@@ -648,7 +670,7 @@ def filter_files(root):
             if any(p in stem.lower() for p in EXCLUDED_NAME_PARTS):
                 SKIPPED_BY_NAME.append(rel)
                 continue
-            if any(p in ("/" + rel.lower()) for p in EXCLUDED_PATH_PARTS):
+            if _excluded_path(root, dirpath):
                 continue
             accepted.append(KtFile(path=path, rel=rel, name=stem, layer=layer))
     accepted.sort(key=lambda f: (f.layer, f.name, f.rel))
@@ -662,8 +684,7 @@ def all_kt_files(root):
     out = []
     for dirpath, dirnames, filenames in os.walk(root):
         dirnames.sort()
-        norm = ("/" + os.path.relpath(dirpath, root).replace(os.sep, "/") + "/").lower()
-        if any(p in norm for p in EXCLUDED_PATH_PARTS):
+        if _excluded_path(root, dirpath):
             dirnames[:] = []
             continue
         for fn in sorted(filenames):
@@ -933,11 +954,23 @@ def _bindings(cls):
     return b
 
 
-def _resolve_type(kf, cands):
+def _split_type(tname):
+    """'com.example.UserUseCase' -> ('UserUseCase', 'com.example'); 'UserUseCase' -> (.., None)"""
+    if "." in tname:
+        pkg, simple = tname.rsplit(".", 1)
+        return simple, pkg
+    return tname, None
+
+
+def _resolve_type(kf, cands, pkg=None):
     """Pick the one class a simple type name refers to in file kf, Kotlin's lookup order:
     explicit import, then same package, then wildcard import. Returns (class, how) or
-    (None, None) when the files do not prove a single class.
+    (None, None) when the files do not prove a single class. A fully qualified type
+    (pkg given) only matches a class declared in exactly that package.
     """
+    if pkg is not None:
+        found = [c for c in cands if c.file.package == pkg]
+        return (found[0], "fully qualified type") if len(found) == 1 else (None, None)
     if len(cands) == 1:
         return cands[0], None
     explicit = [c for c in cands if "%s.%s" % (c.file.package, c.name) in kf.imports]
@@ -973,10 +1006,18 @@ def _find_calls(caller_files, callee_files, link_label):
             binds = _bindings(cls)
             own_fns = {f.name for f in cls.functions if not f.is_property}
             used, candidates = set(), []
-            for inst, (tname, bline, link, snip, origin) in sorted(binds.items()):
+            for inst, (qtype, bline, link, snip, origin) in sorted(binds.items()):
+                tname, pkg = _split_type(qtype)
                 if tname not in callee_classes:
                     continue
-                decl_cls, how_resolved = _resolve_type(kf, callee_classes[tname])
+                decl_cls, how_resolved = _resolve_type(kf, callee_classes[tname], pkg)
+                if decl_cls is None and pkg is not None:
+                    log_unresolved(
+                        "%s.%s : %s" % (cls.name, inst, qtype), "Unresolved link", kf.rel, bline,
+                        "type is declared as %s but no filtered class %s is in package %s "
+                        "(found: %s)" % (qtype, tname, pkg,
+                                         ", ".join(sorted(c.file.rel for c in callee_classes[tname]))))
+                    continue
                 if decl_cls is None:
                     log_unresolved(
                         "%s.%s : %s" % (cls.name, inst, tname), "Ambiguous binding", kf.rel, bline,

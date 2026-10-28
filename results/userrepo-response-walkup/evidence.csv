@@ -1,0 +1,6 @@
+Row #,From,To,Link Type,File Path,Line,Code Snippet
+1,UserRepo.fetchUser (private),UserRepo.getUserAPI (entry),Private -> entry walk-up,app/src/main/java/com/demo/UserRepo.kt,12,val response = fetchUser(userId)
+2,UserService,UserRepo.userService,Constructor injection,app/src/main/java/com/demo/UserRepo.kt,4,private val userService: UserService
+3,UserService.getUser,Response: Response<UserResponse>,Return type,app/src/main/java/com/demo/UserService.kt,8,): Response<UserResponse>
+4,UserService.getUser,UserRepo.fetchUser,Direct call,app/src/main/java/com/demo/UserRepo.kt,34,return userService.getUser(userId)
+5,UserService.getUser,users/{id},Retrofit @GET,app/src/main/java/com/demo/UserService.kt,5,"@GET(""users/{id}"")"

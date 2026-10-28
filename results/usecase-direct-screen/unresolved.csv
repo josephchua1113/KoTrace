@@ -1,0 +1,2 @@
+Item,Type,File Path,Line,Reason
+UserService.kt.getOrders -> stopped at UseCase,Unresolved link,app/src/main/java/com/demo/GetOrdersUseCase.kt,5,"no proven Repository, ViewModel, Fragment or Activity function uses GetOrdersUseCase.execute"

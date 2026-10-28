@@ -1,0 +1,18 @@
+Row #,From,To,Link Type,File Path,Line,Code Snippet
+1,GetUserUsecase,ProfileViewModel.getUserUsecase,Constructor injection,app/src/main/java/com/demo/ProfileViewModel.kt,5,private val getUserUsecase: GetUserUsecase
+2,GetUserUsecase.execute,ProfileViewModel.load,Direct call,app/src/main/java/com/demo/ProfileViewModel.kt,8,viewModelScope.launch { getUserUsecase.execute(id) }
+3,LoginUsecase,LoginActivity.loginUsecase,Property injection (@Inject),app/src/main/java/com/demo/LoginActivity.kt,4,@Inject
+4,LoginUsecase.invoke,LoginActivity.onCreate,Direct call (operator invoke),app/src/main/java/com/demo/LoginActivity.kt,8,"lifecycleScope.launch { loginUsecase(""token"") }"
+5,ProfileViewModel,ProfileFragment.viewModel,Delegation (by viewModels()),app/src/main/java/com/demo/ProfileFragment.kt,4,private val viewModel: ProfileViewModel by viewModels()
+6,ProfileViewModel.load,ProfileFragment.onViewCreated,Direct call,app/src/main/java/com/demo/ProfileFragment.kt,7,"viewModel.load(""42"")"
+7,UserService,GetUserUsecase.service,Constructor injection,app/src/main/java/com/demo/GetUserUsecase.kt,4,class GetUserUsecase @Inject constructor(private val service: UserService) {
+8,UserService,LoginUsecase.service,Constructor injection,app/src/main/java/com/demo/LoginUsecase.kt,3,class LoginUsecase(private val service: UserService) {
+9,UserService.getAuth,LoginUsecase.invoke,Direct call,app/src/main/java/com/demo/LoginUsecase.kt,4,suspend operator fun invoke(token: String) = service.getAuth(token)
+10,UserService.getAuth,Request: String,@Body parameter,app/src/main/java/com/demo/UserService.kt,8,suspend fun getAuth(@Body token: String): Response<AuthResponse>
+11,UserService.getAuth,Response: Response<AuthResponse>,Return type,app/src/main/java/com/demo/UserService.kt,8,suspend fun getAuth(@Body token: String): Response<AuthResponse>
+12,UserService.getAuth,auth,Retrofit @POST,app/src/main/java/com/demo/UserService.kt,7,"@POST(""auth"")"
+13,UserService.getOrders,Response: Response<List<OrderResponse>>,Return type,app/src/main/java/com/demo/UserService.kt,11,suspend fun getOrders(): Response<List<OrderResponse>>
+14,UserService.getOrders,orders,Retrofit @GET,app/src/main/java/com/demo/UserService.kt,10,"@GET(""orders"")"
+15,UserService.getUser,GetUserUsecase.execute,Direct call,app/src/main/java/com/demo/GetUserUsecase.kt,5,suspend fun execute(id: String) = service.getUser(id)
+16,UserService.getUser,Response: Response<UserResponse>,Return type,app/src/main/java/com/demo/UserService.kt,5,"suspend fun getUser(@Path(""id"") id: String): Response<UserResponse>"
+17,UserService.getUser,users/{id},Retrofit @GET,app/src/main/java/com/demo/UserService.kt,4,"@GET(""users/{id}"")"

@@ -1,0 +1,2 @@
+Service Filename,Service Function,HTTP,URL,Request Object,Response Object,URL Const,Line,Path
+UserService.kt,getUser,@GET,users/{id},-,Response<UserResponse>,-,4,app/src/main/java/scan/test/UserService.kt

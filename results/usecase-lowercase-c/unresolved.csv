@@ -1,0 +1,2 @@
+Item,Type,File Path,Line,Reason
+UserService.kt.getOrders -> stopped at Service,Unresolved link,app/src/main/java/com/demo/UserService.kt,10,no proven UseCase or Repository function calls UserService.getOrders

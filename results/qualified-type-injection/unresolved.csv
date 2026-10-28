@@ -1,0 +1,2 @@
+Item,Type,File Path,Line,Reason
+BrokenViewModel.userUseCase : com.missing.UserUseCase,Unresolved link,app/src/main/java/com/app/BrokenViewModel.kt,5,"type is declared as com.missing.UserUseCase but no filtered class UserUseCase is in package com.missing (found: feature-a/src/main/java/com/example/UserUseCase.kt, feature-b/src/main/java/com/other/UserUseCase.kt)"

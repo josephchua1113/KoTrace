@@ -1,0 +1,8 @@
+Layer,File,Path
+Fragment,LoginFragment.kt,app/src/main/java/com/demo/LoginFragment.kt
+Fragment,ProfileFragment.kt,app/src/main/java/com/demo/ProfileFragment.kt
+Repository,UserRepo.kt,app/src/main/java/com/demo/UserRepo.kt
+Service,UserService.kt,app/src/main/java/com/demo/UserService.kt
+ViewModel,LoginViewModel.kt,app/src/main/java/com/demo/LoginViewModel.kt
+ViewModel,LoginViewModel.kt,feature/src/main/java/com/other/LoginViewModel.kt
+ViewModel,ProfileViewModel.kt,app/src/main/java/com/demo/ProfileViewModel.kt

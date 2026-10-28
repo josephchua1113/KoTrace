@@ -1,0 +1,2 @@
+Service Filename,URL,Request Object,Response Object,URL Const,Service Function,UseCase Filename,UseCase Function,Repository Name,Repository Function,ViewModel Name,ViewModel Function,ViewModel Function Source Name,Fragment Name,Fragment Function,Possible Pattern,Stopped At,Missing Link,Related Unresolved
+UserService.kt,auth,-,Call<AuthResponse>,-,getAuth,-,-,UserRepo,-,-,-,-,-,-,C / D,Repository,UserRepo.getAuthAPI is private and no non-private function in UserRepo reaches it,No public entry: UserRepo.getAuthAPI

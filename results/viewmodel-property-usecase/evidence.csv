@@ -1,0 +1,12 @@
+Row #,From,To,Link Type,File Path,Line,Code Snippet
+1,GetAuthenticationUseCase,LoginViewModel.getAuthenticationUseCase,Constructor injection,app/src/main/java/com/demo/LoginViewModel.kt,4,"private val getAuthenticationUseCase: GetAuthenticationUseCase,"
+2,GetAuthenticationUseCase.execute,LoginViewModel.authenticationResult,Direct call,app/src/main/java/com/demo/LoginViewModel.kt,10,getAuthenticationUseCase.execute(it)
+3,LoginViewModel,LoginFragment.loginViewModel,Delegation (by viewModels()),app/src/main/java/com/demo/LoginFragment.kt,5,private val loginViewModel: LoginViewModel by viewModels()
+4,LoginViewModel.authenticationResult,LoginFragment.onViewCreated,Property read,app/src/main/java/com/demo/LoginFragment.kt,9,loginViewModel.authenticationResult.observe(viewLifecycleOwner) { event ->
+5,UserRepo,GetAuthenticationUseCase.repository,Constructor injection,app/src/main/java/com/demo/GetAuthenticationUseCase.kt,4,private val repository: UserRepo
+6,UserRepo.getAuthAPI (private),UserRepo.getAuthentication (entry),Private -> entry walk-up,app/src/main/java/com/demo/UserRepo.kt,16,getAuthAPI().enqueue(
+7,UserRepo.getAuthentication,GetAuthenticationUseCase.execute,Direct call,app/src/main/java/com/demo/GetAuthenticationUseCase.kt,21,repository.getAuthentication(
+8,UserService,UserRepo.service,Constructor injection,app/src/main/java/com/demo/UserRepo.kt,4,private val service: UserService
+9,UserService.getAuth,Response: Call<AuthResponse>,Return type,app/src/main/java/com/demo/UserService.kt,6,fun getAuth(): Call<AuthResponse>
+10,UserService.getAuth,UserRepo.getAuthAPI,Direct call,app/src/main/java/com/demo/UserRepo.kt,8,return service.getAuth()
+11,UserService.getAuth,auth,Retrofit @GET,app/src/main/java/com/demo/UserService.kt,5,"@GET(""auth"")"

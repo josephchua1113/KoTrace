@@ -1,0 +1,3 @@
+Item,Type,File Path,Line,Reason
+UserRepo.getAuthAPI,No public entry,app/src/main/java/com/demo/UserRepo.kt,5,upstream call sits in a private function and no non-private function in the same class reaches it
+UserService.kt.getAuth -> stopped at Repository,Unresolved link,app/src/main/java/com/demo/UserRepo.kt,5,UserRepo.getAuthAPI is private and no non-private function in UserRepo reaches it

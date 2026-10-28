@@ -1,0 +1,2 @@
+Service Filename,Service Function,HTTP,URL,Request Object,Response Object,URL Const,Line,Path
+UserService.kt,getAuth,@POST,auth,String,Response<AuthResponse>,-,5,app/src/main/java/com/demo/UserService.kt

@@ -13,7 +13,7 @@ class ProfileRepository @Inject constructor() {
 
     suspend fun getProfile(): Profile = profileService.getProfile()
 
-    // public but neither override nor suspend: the private call below has no valid entry
+    // public plain fun: the private call below walks up to this entry
     fun saveProfile(profile: Profile) {
         CoroutineScope(Dispatchers.IO).launch { pushUpdate(profile) }
     }

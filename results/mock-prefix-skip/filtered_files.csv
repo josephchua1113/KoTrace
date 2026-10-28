@@ -1,0 +1,3 @@
+Layer,File,Path
+Repository,UserRepo.kt,app/src/main/java/com/demo/UserRepo.kt
+Service,UserService.kt,app/src/main/java/com/demo/UserService.kt

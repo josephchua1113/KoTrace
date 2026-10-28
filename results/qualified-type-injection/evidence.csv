@@ -1,0 +1,25 @@
+Row #,From,To,Link Type,File Path,Line,Code Snippet
+1,AdminViewModel,AdminActivity.viewModel,Delegation (by viewModels()),app/src/main/java/com/app/AdminActivity.kt,4,private val viewModel: AdminViewModel by viewModels()
+2,AdminViewModel.loadAdmin,AdminActivity.onCreate,Direct call,app/src/main/java/com/app/AdminActivity.kt,7,"viewModel.loadAdmin(""1"")"
+3,ProfileViewModel,ProfileFragment.viewModel,Delegation (by viewModels()),app/src/main/java/com/app/ProfileFragment.kt,4,private val viewModel: com.app.ProfileViewModel by viewModels()
+4,ProfileViewModel,app/src/main/java/com/app/ProfileViewModel.kt,Type resolved by fully qualified type,app/src/main/java/com/app/ProfileFragment.kt,4,private val viewModel: com.app.ProfileViewModel by viewModels()
+5,ProfileViewModel.load,ProfileFragment.onViewCreated,Direct call,app/src/main/java/com/app/ProfileFragment.kt,7,"viewModel.load(""42"")"
+6,UserRepository,UserUseCase.repository,Constructor injection,feature-a/src/main/java/com/example/UserUseCase.kt,3,class UserUseCase(private val repository: com.example.UserRepository) {
+7,UserRepository,feature-a/src/main/java/com/example/UserRepository.kt,Type resolved by fully qualified type,feature-a/src/main/java/com/example/UserUseCase.kt,3,class UserUseCase(private val repository: com.example.UserRepository) {
+8,UserRepository.loadUser,UserUseCase.execute,Direct call,feature-a/src/main/java/com/example/UserUseCase.kt,4,suspend fun execute(id: String) = repository.loadUser(id)
+9,UserService,UserRepository.service,Constructor injection,feature-a/src/main/java/com/example/UserRepository.kt,4,class UserRepository(private val service: com.example.UserService) {
+10,UserService,UserUseCase.service,Constructor injection,feature-b/src/main/java/com/other/UserUseCase.kt,4,class UserUseCase(private val service: com.other.UserService) {
+11,UserService,feature-a/src/main/java/com/example/UserService.kt,Type resolved by fully qualified type,feature-a/src/main/java/com/example/UserRepository.kt,4,class UserRepository(private val service: com.example.UserService) {
+12,UserService,feature-b/src/main/java/com/other/UserService.kt,Type resolved by fully qualified type,feature-b/src/main/java/com/other/UserUseCase.kt,4,class UserUseCase(private val service: com.other.UserService) {
+13,UserService.getUser,Response: Response<AdminUserResponse>,Return type,feature-b/src/main/java/com/other/UserService.kt,5,"suspend fun getUser(@Path(""id"") id: String): Response<AdminUserResponse>"
+14,UserService.getUser,Response: Response<UserResponse>,Return type,feature-a/src/main/java/com/example/UserService.kt,5,"suspend fun getUser(@Path(""id"") id: String): Response<UserResponse>"
+15,UserService.getUser,UserRepository.loadUser,Direct call,feature-a/src/main/java/com/example/UserRepository.kt,5,suspend fun loadUser(id: String) = service.getUser(id)
+16,UserService.getUser,UserUseCase.execute,Direct call,feature-b/src/main/java/com/other/UserUseCase.kt,5,suspend fun execute(id: String) = service.getUser(id)
+17,UserService.getUser,admin/users/{id},Retrofit @GET,feature-b/src/main/java/com/other/UserService.kt,4,"@GET(""admin/users/{id}"")"
+18,UserService.getUser,users/{id},Retrofit @GET,feature-a/src/main/java/com/example/UserService.kt,4,"@GET(""users/{id}"")"
+19,UserUseCase,AdminViewModel.userUseCase,Property injection (@Inject),app/src/main/java/com/app/AdminViewModel.kt,7,@Inject
+20,UserUseCase,ProfileViewModel.userUseCase,Constructor injection,app/src/main/java/com/app/ProfileViewModel.kt,5,private val userUseCase: com.example.UserUseCase
+21,UserUseCase,feature-a/src/main/java/com/example/UserUseCase.kt,Type resolved by fully qualified type,app/src/main/java/com/app/ProfileViewModel.kt,5,private val userUseCase: com.example.UserUseCase
+22,UserUseCase,feature-b/src/main/java/com/other/UserUseCase.kt,Type resolved by fully qualified type,app/src/main/java/com/app/AdminViewModel.kt,7,@Inject
+23,UserUseCase.execute,AdminViewModel.loadAdmin,Direct call,app/src/main/java/com/app/AdminViewModel.kt,11,viewModelScope.launch { userUseCase.execute(id) }
+24,UserUseCase.execute,ProfileViewModel.load,Direct call,app/src/main/java/com/app/ProfileViewModel.kt,8,viewModelScope.launch { userUseCase.execute(id) }

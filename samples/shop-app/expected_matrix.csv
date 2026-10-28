@@ -6,3 +6,5 @@ OrderService.kt,api/v2/orders,-,List<Order>,-,getOrders,GetOrdersUseCase.kt,invo
 ProductService.kt,api/v2/products/{id},-,Product,PRODUCT_DETAIL,getProductDetail,GetProductsUseCase.kt,fetchDetail,ProductRepoImpl,loadDetail,CatalogViewModel,openProduct,ProductRepoImpl,CatalogFragment,onItemClicked,A
 ProductService.kt,api/v2/products,-,List<Product>,"BASE, PRODUCTS",getProducts,GetProductsUseCase.kt,fetch,ProductRepoImpl,loadCatalog,CatalogViewModel,loadCatalog,ProductRepoImpl,CatalogFragment,onViewCreated,A
 ProfileService.kt,api/v2/profile,-,Profile,-,getProfile,-,-,ProfileRepository,getProfile,ProfileViewModel,loadProfile,ProfileRepository,ProfileFragment,onViewCreated,C
+ProfileService.kt,api/v2/profile,-,Profile,-,getProfile,-,-,ProfileRepository,getProfile,SettingsViewModel,loadSettings,ProfileRepository,SettingsActivity,onCreate,C
+ProfileService.kt,api/v2/profile,Profile,Profile,-,updateProfile,-,-,ProfileRepository,saveProfile,ProfileViewModel,save,ProfileRepository,ProfileFragment,onViewCreated,C

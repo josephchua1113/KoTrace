@@ -1,0 +1,12 @@
+Row #,From,To,Link Type,File Path,Line,Code Snippet
+1,GetAuthenticationUseCase,LoginViewModel.getAuthenticationUseCase,Constructor injection,app/src/main/java/com/demo/LoginViewModel.kt,4,private val getAuthenticationUseCase: GetAuthenticationUseCase
+2,GetAuthenticationUseCase.execute,LoginViewModel.login,Direct call,app/src/main/java/com/demo/LoginViewModel.kt,9,getAuthenticationUseCase.execute(token)
+3,LoginViewModel,LoginFragment.viewModel,Delegation (by viewModels()),app/src/main/java/com/demo/LoginFragment.kt,5,private val viewModel: LoginViewModel by viewModels()
+4,LoginViewModel.login,LoginFragment.onViewCreated,Direct call,app/src/main/java/com/demo/LoginFragment.kt,9,"viewModel.login(""token"")"
+5,UserRepository,GetAuthenticationUseCase.repository,Constructor injection,app/src/main/java/com/demo/GetAuthenticationUseCase.kt,4,private val repository: UserRepository
+6,UserRepositoryImpl.getAuthentication,GetAuthenticationUseCase.execute,Direct call,app/src/main/java/com/demo/GetAuthenticationUseCase.kt,10,return repository.getAuthentication(token)
+7,UserService,UserRepositoryImpl.service,Constructor injection,app/src/main/java/com/demo/UserRepositoryImpl.kt,4,private val service: UserService
+8,UserService.getAuth,Request: String,@Body parameter,app/src/main/java/com/demo/UserService.kt,6,suspend fun getAuth(@Body token: String): Response<AuthResponse>
+9,UserService.getAuth,Response: Response<AuthResponse>,Return type,app/src/main/java/com/demo/UserService.kt,6,suspend fun getAuth(@Body token: String): Response<AuthResponse>
+10,UserService.getAuth,UserRepositoryImpl.getAuthentication,Direct call,app/src/main/java/com/demo/UserRepositoryImpl.kt,11,val response = service.getAuth(token)
+11,UserService.getAuth,auth,Retrofit @POST,app/src/main/java/com/demo/UserService.kt,5,"@POST(""auth"")"

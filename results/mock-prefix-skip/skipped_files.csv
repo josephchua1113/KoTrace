@@ -1,0 +1,5 @@
+File,Path,Reason
+MockUserRepo.kt,app/src/main/java/com/demo/MockUserRepo.kt,name contains mock
+MockUserService.kt,app/src/main/java/com/demo/MockUserService.kt,name contains mock
+UserMockRepo.kt,app/src/main/java/com/demo/UserMockRepo.kt,name contains mock
+UserMockService.kt,app/src/main/java/com/demo/UserMockService.kt,name contains mock
