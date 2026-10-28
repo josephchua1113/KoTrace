@@ -484,6 +484,13 @@ def _parse_properties(kf, body_start, body_end):
             if c:
                 type_name = c.group(1)
                 link_type = link_type or "Retrofit create(%s::class.java)" % type_name
+            if not type_name:
+                # ViewModelProvider(this).get(X::class.java) / ViewModelProvider(this)[X::class.java]
+                c = re.search(r"\bViewModelProvider\b[^\n]*?(?:\.get\s*\(|\[)\s*(" + IDENT +
+                              r")\s*::\s*class(?:\.java)?\s*[)\]]", init)
+                if c:
+                    type_name = c.group(1)
+                    link_type = link_type or "ViewModelProvider(...).get(%s::class.java)" % type_name
         if not type_name:
             # = GetUserUseCase(...): a constructor call (class names start upper-case)
             c = re.match(r"=\s*([A-Z]\w*)\s*\(", tail)
@@ -1130,14 +1137,8 @@ def map_viewmodel_to_fragment(files):
                        [f for f in files if f.layer == "ViewModel"], "ViewModel -> Fragment")
     act = _find_calls([f for f in files if f.layer == "Activity"],
                       [f for f in files if f.layer == "ViewModel"], "ViewModel -> Activity")
-    vm_with_fragment = {e.source_class for e in frag}
-    for e in act:
-        if e.source_class not in vm_with_fragment:
-            log_unresolved("%s.%s -> %s" % (e.source_class, e.source_function, e.target_class),
-                           "Unresolved link", e.file_path, e.line,
-                           "ViewModel function is used by an Activity, not a Fragment; the "
-                           "matrix has no Activity columns so this path has no Fragment cell")
-    return frag
+    # an Activity is the screen when it uses the ViewModel; it goes in the Fragment columns
+    return frag + act
 
 
 def resolve_repository_entry_function(files, repo_edge):
@@ -1288,7 +1289,7 @@ def build_flows(files, endpoints, svc_uc, svc_repo, uc_repo, uc_vm, repo_vm, vm_
                     f_hits = frag_edges(e3.target_class, e3.target_function)
                     if not f_hits:
                         dead_end(ep, "A", "ViewModel",
-                                 "no proven Fragment function calls %s.%s"
+                                 "no proven Fragment or Activity function calls %s.%s"
                                  % (e3.target_class, e3.target_function),
                                  (e3.file_path, e3.line), **uc, **rp, **vm,
                                  names=("%s.%s" % (e3.target_class, e3.target_function),))
@@ -1302,7 +1303,7 @@ def build_flows(files, endpoints, svc_uc, svc_repo, uc_repo, uc_vm, repo_vm, vm_
                 f_hits = frag_edges(e2.target_class, e2.target_function)
                 if not f_hits:
                     dead_end(ep, "B", "ViewModel",
-                             "no proven Fragment function calls %s.%s"
+                             "no proven Fragment or Activity function calls %s.%s"
                              % (e2.target_class, e2.target_function),
                              (e2.file_path, e2.line), **uc, **vm,
                              names=("%s.%s" % (e2.target_class, e2.target_function),))
@@ -1338,7 +1339,7 @@ def build_flows(files, endpoints, svc_uc, svc_repo, uc_repo, uc_vm, repo_vm, vm_
                 f_hits = frag_edges(e2.target_class, e2.target_function)
                 if not f_hits:
                     dead_end(ep, "C", "ViewModel",
-                             "no proven Fragment function calls %s.%s"
+                             "no proven Fragment or Activity function calls %s.%s"
                              % (e2.target_class, e2.target_function),
                              (e2.file_path, e2.line), **rp, **vm,
                              names=("%s.%s" % (e2.target_class, e2.target_function),))
@@ -1362,7 +1363,7 @@ def build_flows(files, endpoints, svc_uc, svc_repo, uc_repo, uc_vm, repo_vm, vm_
                     f_hits = frag_edges(e3.target_class, e3.target_function)
                     if not f_hits:
                         dead_end(ep, "D", "ViewModel",
-                                 "no proven Fragment function calls %s.%s"
+                                 "no proven Fragment or Activity function calls %s.%s"
                                  % (e3.target_class, e3.target_function),
                                  (e3.file_path, e3.line), **rp, **uc, **vm,
                                  names=("%s.%s" % (e3.target_class, e3.target_function),))
