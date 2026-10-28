@@ -19,6 +19,7 @@ Structure (one function per search, build_flows is the only combiner):
     map_repository_to_viewmodel()
     resolve_repository_entry_function()
     map_viewmodel_to_fragment()
+    map_usecase_to_screen()
     build_flows()
     export_excel()
 """
@@ -1142,6 +1143,15 @@ def map_viewmodel_to_fragment(files):
     return frag + act
 
 
+def map_usecase_to_screen(files):
+    # Pattern E: a Fragment or Activity calls the UseCase directly (no ViewModel)
+    frag = _find_calls([f for f in files if f.layer == "Fragment"],
+                       [f for f in files if f.layer == "UseCase"], "UseCase -> Fragment")
+    act = _find_calls([f for f in files if f.layer == "Activity"],
+                      [f for f in files if f.layer == "UseCase"], "UseCase -> Activity")
+    return frag + act
+
+
 def resolve_repository_entry_function(files, repo_edge):
     """Repository public-entry rule: a private function never appears in the matrix.
 
@@ -1200,11 +1210,12 @@ def resolve_repository_entry_function(files, repo_edge):
 # build_flows -- the ONLY place edges are combined
 # --------------------------------------------------------------------------- #
 
-def build_flows(files, endpoints, svc_uc, svc_repo, uc_repo, uc_vm, repo_vm, vm_frag):
+def build_flows(files, endpoints, svc_uc, svc_repo, uc_repo, uc_vm, repo_vm, vm_frag,
+                uc_screen=()):
     """Walks every proven chain from each Service function.
 
     Returns (rows, broken):
-      rows   -- complete Pattern A / B / C / D paths (Traceability Matrix)
+      rows   -- complete Pattern A / B / C / D / E paths (Traceability Matrix)
       broken -- every dead end: only proven cells are filled, the rest is "-",
                 with the layer where the chain stopped and the missing link.
     """
@@ -1253,7 +1264,7 @@ def build_flows(files, endpoints, svc_uc, svc_repo, uc_repo, uc_vm, repo_vm, vm_
         repo_hits = [e for e in svc_repo if e.source_rel == svc_rel and e.source_function == svc_fn]
 
         if not uc_hits and not repo_hits:
-            dead_end(ep, "A / B / C / D", "Service",
+            dead_end(ep, "A / B / C / D / E", "Service",
                      "no proven UseCase or Repository function calls %s.%s" % (ep["service_class"], svc_fn),
                      here, names=("%s.%s" % (ep["service_class"], svc_fn),))
 
@@ -1266,9 +1277,11 @@ def build_flows(files, endpoints, svc_uc, svc_repo, uc_repo, uc_vm, repo_vm, vm_
                       and e.source_function == e1.target_function]
             b_hits = [e for e in uc_vm if follows(e, e1)
                       and e.source_function == e1.target_function]
-            if not a_hits and not b_hits:
-                dead_end(ep, "A / B", "UseCase",
-                         "no proven Repository or ViewModel function uses %s.%s"
+            e_hits = [e for e in uc_screen if follows(e, e1)
+                      and e.source_function == e1.target_function]
+            if not a_hits and not b_hits and not e_hits:
+                dead_end(ep, "A / B / E", "UseCase",
+                         "no proven Repository, ViewModel, Fragment or Activity function uses %s.%s"
                          % (e1.target_class, e1.target_function), at_uc,
                          names=("%s.%s" % (e1.target_class, e1.target_function),), **uc)
 
@@ -1317,6 +1330,10 @@ def build_flows(files, endpoints, svc_uc, svc_repo, uc_repo, uc_vm, repo_vm, vm_
                 for e3 in f_hits:
                     rows.append(_row(ep, "B", repo_name=DASH, repo_fn=DASH,
                                      frag=e3.target_class, frag_fn=e3.target_function, **uc, **vm))
+
+            # Pattern E: Service > UseCase > Fragment / Activity (no Repository, no ViewModel)
+            for e2 in e_hits:
+                rows.append(_row(ep, "E", frag=e2.target_class, frag_fn=e2.target_function, **uc))
 
         # ---- Repository branch: Pattern C and Pattern D
         for e1 in repo_hits:
@@ -1461,6 +1478,9 @@ def final_check(files, rows, broken=()):
             problems.append("Pattern B row has a Repository: %s" % r)
         if r.get("Pattern") == "C" and r["UseCase Filename"] != DASH:
             problems.append("Pattern C row has a UseCase: %s" % r)
+        if r.get("Pattern") == "E" and (r["Repository Name"] != DASH or r["ViewModel Name"] != DASH
+                                        or r["UseCase Filename"] == DASH):
+            problems.append("Pattern E row must have a UseCase and no Repository/ViewModel: %s" % r)
     # no private repository function
     privates = set()
     for kf in [f for f in files if f.layer == "Repository"]:
@@ -1570,14 +1590,15 @@ def main(argv=None):
     uc_vm = map_usecase_to_viewmodel(filtered)
     repo_vm = map_repository_to_viewmodel(filtered)
     vm_frag = map_viewmodel_to_fragment(filtered)
+    uc_screen = map_usecase_to_screen(filtered)
     rows, broken = build_flows(filtered, endpoints, svc_uc, svc_repo, uc_repo, uc_vm, repo_vm,
-                               vm_frag)
+                               vm_frag, uc_screen)
 
     problems = final_check(filtered, rows, broken)
     print("\nendpoints=%d  svc->uc=%d  svc->repo=%d  uc<->repo=%d  uc->vm=%d  repo->vm=%d  "
-          "vm->frag=%d  rows=%d  broken=%d  evidence=%d  unresolved=%d"
+          "vm->frag=%d  uc->screen=%d  rows=%d  broken=%d  evidence=%d  unresolved=%d"
           % (len(endpoints), len(svc_uc), len(svc_repo), len(uc_repo), len(uc_vm),
-             len(repo_vm), len(vm_frag), len(rows), len(broken), len(EVIDENCE), len(UNRESOLVED)))
+             len(repo_vm), len(vm_frag), len(uc_screen), len(rows), len(broken), len(EVIDENCE), len(UNRESOLVED)))
     if problems:
         print("\nFINAL CHECK FAILURES:")
         for p in problems:
