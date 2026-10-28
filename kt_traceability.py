@@ -1215,8 +1215,14 @@ def build_flows(files, endpoints, svc_uc, svc_repo, uc_repo, uc_vm, repo_vm, vm_
     def repo_entry(edge):
         return resolve_repository_entry_function(files, edge)
 
-    def frag_edges(vm_cls, vm_fn):
-        return [e for e in vm_frag if e.source_class == vm_cls and e.source_function == vm_fn]
+    def follows(e, prev):
+        # the next hop must start in the very class (same file) the previous hop ended in, so
+        # same-named classes in other modules never join a chain
+        return e.source_class == prev.target_class and e.source_rel == prev.target_rel
+
+    def frag_edges(vm_edge):
+        return [e for e in vm_frag if follows(e, vm_edge)
+                and e.source_function == vm_edge.target_function]
 
     def dead_end(ep, possible, stopped_at, missing, where, **cells):
         r = _row(ep, DASH, **{k: cells.get(k, DASH) for k in (
@@ -1255,9 +1261,9 @@ def build_flows(files, endpoints, svc_uc, svc_repo, uc_repo, uc_vm, repo_vm, vm_
             uc = dict(uc_file=e1.target_file, uc_fn=e1.target_function)
             at_uc = (e1.file_path, e1.line)
             a_hits = [e for e in uc_repo
-                      if e.direction == "repository-calls-usecase" and e.source_file == e1.target_file
+                      if e.direction == "repository-calls-usecase" and follows(e, e1)
                       and e.source_function == e1.target_function]
-            b_hits = [e for e in uc_vm if e.source_file == e1.target_file
+            b_hits = [e for e in uc_vm if follows(e, e1)
                       and e.source_function == e1.target_function]
             if not a_hits and not b_hits:
                 dead_end(ep, "A / B", "UseCase",
@@ -1277,7 +1283,7 @@ def build_flows(files, endpoints, svc_uc, svc_repo, uc_repo, uc_vm, repo_vm, vm_
                              names=("%s.%s" % (repo_cls, repo_edge.target_function),))
                     continue
                 rp = dict(repo_name=repo_cls, repo_fn=entry_fn)
-                vm_hits = [e for e in repo_vm if e.source_class == repo_cls
+                vm_hits = [e for e in repo_vm if follows(e, e2)
                            and e.source_function == entry_fn]
                 if not vm_hits:
                     dead_end(ep, "A", "Repository",
@@ -1286,7 +1292,7 @@ def build_flows(files, endpoints, svc_uc, svc_repo, uc_repo, uc_vm, repo_vm, vm_
                              names=_with_supers(repo_cls), types=BINDING_TYPES)
                 for e3 in vm_hits:
                     vm = dict(vm=e3.target_class, vm_fn=e3.target_function, vm_src=repo_cls)
-                    f_hits = frag_edges(e3.target_class, e3.target_function)
+                    f_hits = frag_edges(e3)
                     if not f_hits:
                         dead_end(ep, "A", "ViewModel",
                                  "no proven Fragment or Activity function calls %s.%s"
@@ -1300,7 +1306,7 @@ def build_flows(files, endpoints, svc_uc, svc_repo, uc_repo, uc_vm, repo_vm, vm_
             # Pattern B: Service > UseCase > ViewModel > Fragment
             for e2 in b_hits:
                 vm = dict(vm=e2.target_class, vm_fn=e2.target_function, vm_src=e2.source_class)
-                f_hits = frag_edges(e2.target_class, e2.target_function)
+                f_hits = frag_edges(e2)
                 if not f_hits:
                     dead_end(ep, "B", "ViewModel",
                              "no proven Fragment or Activity function calls %s.%s"
@@ -1322,10 +1328,10 @@ def build_flows(files, endpoints, svc_uc, svc_repo, uc_repo, uc_vm, repo_vm, vm_
                          names=("%s.%s" % (e1.target_class, e1.target_function),))
                 continue
             rp = dict(repo_name=e1.target_class, repo_fn=entry_fn)
-            vm_hits = [e for e in repo_vm if e.source_class == e1.target_class
+            vm_hits = [e for e in repo_vm if follows(e, e1)
                        and e.source_function == entry_fn]
             d_hits = [e for e in uc_repo if e.direction == "usecase-calls-repository"
-                      and e.source_class == e1.target_class and e.source_function == entry_fn]
+                      and follows(e, e1) and e.source_function == entry_fn]
             if not vm_hits and not d_hits:
                 dead_end(ep, "C / D", "Repository",
                          "no proven ViewModel or UseCase function calls %s.%s"
@@ -1336,7 +1342,7 @@ def build_flows(files, endpoints, svc_uc, svc_repo, uc_repo, uc_vm, repo_vm, vm_
             # Pattern C: Service > Repository > ViewModel > Fragment
             for e2 in vm_hits:
                 vm = dict(vm=e2.target_class, vm_fn=e2.target_function, vm_src=e1.target_class)
-                f_hits = frag_edges(e2.target_class, e2.target_function)
+                f_hits = frag_edges(e2)
                 if not f_hits:
                     dead_end(ep, "C", "ViewModel",
                              "no proven Fragment or Activity function calls %s.%s"
@@ -1350,7 +1356,7 @@ def build_flows(files, endpoints, svc_uc, svc_repo, uc_repo, uc_vm, repo_vm, vm_
             # Pattern D: Service > Repository > UseCase > ViewModel > Fragment
             for e2 in d_hits:
                 uc = dict(uc_file=e2.target_file, uc_fn=e2.target_function)
-                uvm_hits = [e for e in uc_vm if e.source_file == e2.target_file
+                uvm_hits = [e for e in uc_vm if follows(e, e2)
                             and e.source_function == e2.target_function]
                 if not uvm_hits:
                     dead_end(ep, "D", "UseCase",
@@ -1360,7 +1366,7 @@ def build_flows(files, endpoints, svc_uc, svc_repo, uc_repo, uc_vm, repo_vm, vm_
                              names=("%s.%s" % (e2.target_class, e2.target_function),))
                 for e3 in uvm_hits:
                     vm = dict(vm=e3.target_class, vm_fn=e3.target_function, vm_src=e2.target_class)
-                    f_hits = frag_edges(e3.target_class, e3.target_function)
+                    f_hits = frag_edges(e3)
                     if not f_hits:
                         dead_end(ep, "D", "ViewModel",
                                  "no proven Fragment or Activity function calls %s.%s"
